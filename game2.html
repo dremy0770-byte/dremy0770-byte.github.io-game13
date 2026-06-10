@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d0d1a; color:#fff; font-family:monospace; overflow:hidden; width:100vw; height:100vh; }
+
+/* 타이틀 */
+#T { position:fixed; inset:0; background:#0d0d1a; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; text-align:center; padding:20px; }
+#T h1 { font-size:clamp(16px,5vw,26px); color:#f9e04b; line-height:1.8; }
+#T p  { font-size:clamp(12px,3vw,16px); color:#a78bfa; line-height:1.8; }
+.bigc { font-size:clamp(48px,14vw,72px); }
+.sbtn { background:#7c3aed; color:#fff; border:4px solid #a78bfa; padding:16px 48px; font-family:monospace; font-size:clamp(14px,4vw,20px); cursor:pointer; }
+
+/* 게임 레이아웃 */
+#G { position:fixed; inset:0; flex-direction:column; display:none; }
+
+/* HUD */
+#HUD { height:40px; background:#000; border-bottom:3px solid #333; display:flex; align-items:center; padding:0 12px; gap:10px; flex-shrink:0; }
+#HUD span { font-size:clamp(10px,2.5vw,14px); }
+#HPB { width:130px; height:12px; background:#333; border:2px solid #555; flex-shrink:0; }
+#HPF { height:100%; background:#4ade80; width:100%; }
+
+/* 뷰포트 */
+#VP { flex:1; position:relative; overflow:hidden; background:#0d1b2a; }
+
+/* 월드 */
+#W { position:absolute; top:0; left:0; height:100%; width:3200px; }
+
+/* 플레이어 — 핵심! position absolute, bottom 기준 */
+#PL { position:absolute; font-size:36px; line-height:1; z-index:20; bottom:80px; left:64px; display:block; }
+
+/* NPC */
+.NPC { position:absolute; bottom:80px; text-align:center; z-index:10; }
+.NPC .fe { font-size:30px; display:block; }
+.NPC .nm { font-size:9px; background:#000; padding:1px 4px; white-space:nowrap; }
+.NPC .bb { position:absolute; bottom:115%; left:50%; transform:translateX(-50%); background:#f9e04b; color:#000; border:2px solid #b45309; padding:3px 8px; font-size:9px; white-space:nowrap; display:none; }
+
+/* 존 이름 */
+#ZN { position:absolute; top:6px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.7); border:2px solid #555; color:#f9e04b; padding:3px 12px; font-size:11px; z-index:30; pointer-events:none; white-space:nowrap; }
+
+/* 컨트롤 */
+#C { height:96px; background:#000; border-top:3px solid #222; display:flex; justify-content:space-between; align-items:center; padding:12px 16px; flex-shrink:0; }
+.cb { width:56px; height:56px; background:#1a1a1a; border:3px solid #4c1d95; color:#a78bfa; font-size:22px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:monospace; touch-action:none; user-select:none; -webkit-user-select:none; }
+.cb:active { background:#2d0a5e; }
+#CJ { border-color:#1d4ed8; color:#93c5fd; flex-direction:column; font-size:12px; gap:1px; }
+#CT { width:60px; height:60px; border-color:#7c3aed; color:#c4b5fd; flex-direction:column; gap:2px; font-size:11px; }
+#CT.lit { background:#6d28d9; border-color:#f9e04b; color:#f9e04b; }
+.dp { display:flex; gap:8px; }
+
+/* 토스트 */
+#TS { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#f9e04b; color:#000; border:3px solid #b45309; padding:12px 20px; font-size:14px; z-index:999; white-space:nowrap; display:none; }
+
+/* 대화 */
+#DLG { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:200; display:none; align-items:flex-end; justify-content:center; padding:12px; }
+#DB { background:#0d0d1a; border:4px solid #7c3aed; padding:18px; max-width:480px; width:100%; }
+#DH { display:flex; align-items:center; gap:12px; border-bottom:2px solid #333; padding-bottom:12px; margin-bottom:14px; }
+#DF { font-size:40px; }
+#DN { font-size:clamp(13px,3.5vw,18px); color:#f9e04b; }
+#DTP { font-size:11px; margin-top:4px; }
+#DP { font-size:11px; color:#555; margin-left:auto; }
+#DT { font-size:clamp(12px,3vw,16px); color:#e2e8f0; line-height:2.2; min-height:52px; margin-bottom:16px; }
+#DBTN { width:100%; background:#7c3aed; color:#fff; border:4px solid #a78bfa; padding:14px; font-family:monospace; font-size:clamp(13px,3.5vw,17px); cursor:pointer; }
+
+/* 배틀 */
+#BTL { position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:300; display:none; align-items:center; justify-content:center; padding:16px; }
+#BB { background:#0d0d1a; border:4px solid #7c3aed; padding:18px; max-width:480px; width:100%; }
+#BTT { font-size:clamp(12px,3vw,16px); color:#f9e04b; text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:14px; }
+.bsd { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px; }
+.bs { width:44%; }
+.bs.r { text-align:right; }
+.bl { font-size:11px; color:#555; margin-bottom:4px; }
+.bsp { font-size:38px; display:block; text-align:center; margin-bottom:6px; }
+.bh { height:12px; background:#222; border:2px solid #444; margin-bottom:4px; }
+.bhf { height:100%; transition:width .3s; }
+.bht { font-size:11px; color:#888; }
+.bvs { font-size:16px; color:#444; align-self:center; }
+#BL { background:#000; border:2px solid #222; padding:10px; min-height:72px; margin-bottom:14px; }
+#BL div { font-size:12px; line-height:2.2; color:#555; }
+#BL div:last-child { color:#0f0; }
+.bac { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.ba { padding:14px 4px; border:3px solid; color:#fff; font-family:monospace; font-size:clamp(10px,2.5vw,13px); cursor:pointer; line-height:1.8; }
+.ba:disabled { opacity:.35; cursor:default; }
+
+/* 장애물/아이템 */
+.OBJ{position:absolute;font-size:28px;line-height:1;z-index:15;pointer-events:none;}
+#DANGER{position:fixed;inset:0;background:rgba(255,0,0,0);pointer-events:none;z-index:60;transition:background .15s;}
+#POPUP{position:fixed;top:55px;left:50%;transform:translateX(-50%);font-size:22px;z-index:998;pointer-events:none;display:none;}
+@keyframes popUp{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-50px)}}
+/* 엔딩 */
+#END { position:fixed; inset:0; background:#0d0d1a; z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px; text-align:center; overflow-y:auto; }
+#END h1 { font-size:clamp(16px,5vw,24px); color:#f9e04b; }
+#END p  { font-size:clamp(12px,3vw,16px); color:#bbb; line-height:2; }
+.ec { background:#111; border:3px solid #7c3aed; padding:18px; max-width:440px; width:100%; }
+.ec h2 { font-size:clamp(12px,3vw,16px); color:#a78bfa; margin-bottom:10px; }
+</style>
+</head>
+<body>
+
+<!-- 타이틀 -->
+<div id="T">
+  <div class="bigc">🏰</div>
+  <h1>최애 어디갔어요?!<br>왕국 구출 대작전</h1>
+  <div style="font-size:clamp(40px,12vw,60px)">🤴 👸</div>
+  <p>왕자님과 공주님이 사라졌다!<br>충격받은 팬이 왕국으로 향하는데...<br>알고보니 다들 자기 인생 살기 바쁘다.</p>
+  <button class="sbtn" id="SBTN">▶ START</button>
+  <p style="font-size:11px;color:#444">← → 이동 &nbsp;↑/SPACE 점프 &nbsp;E 대화<br>모바일: 하단 버튼 조작</p>
+</div>
+
+<!-- 게임 -->
+<div id="G">
+  <div id="HUD">
+    <span>HP</span>
+    <div id="HPB"><div id="HPF"></div></div>
+    <span id="HTXT">100</span>
+    <span id="HATK" style="margin-left:4px">🪄20</span>
+    <span id="HSCORE" style="color:#f9e04b;margin-left:4px">🎫0</span>
+    <span id="HMUG" style="color:#4ade80;margin-left:auto">💚0/10</span>
+    <span id="HROY">🔍0/2</span>
+  </div>
+  <div id="VP">
+    <div id="ZN">🏘️ 팬들의 마을</div>
+    <div id="W"></div>
+  </div>
+  <div id="C">
+    <div class="dp">
+      <button class="cb" onpointerdown="K.l=true" onpointerup="K.l=false" onpointerleave="K.l=false" onpointercancel="K.l=false">◀</button>
+      <button class="cb" onpointerdown="K.r=true" onpointerup="K.r=false" onpointerleave="K.r=false" onpointercancel="K.r=false">▶</button>
+      <button class="cb" id="CJ" onpointerdown="doJump()">▲<span style="font-size:8px">점프</span></button>
+    </div>
+    <button class="cb" id="CT" onclick="interact()">
+      <span id="CTI" style="font-size:24px">💬</span>
+      <span id="CTL" style="font-size:9px">탭</span>
+    </button>
+  </div>
+</div>
+
+<!-- 대화 -->
+<div id="DLG">
+  <div id="DB">
+    <div id="DH">
+      <span id="DF">🧑</span>
+      <div><div id="DN">-</div><div id="DTP">-</div></div>
+      <span id="DP">1/1</span>
+    </div>
+    <div id="DT"></div>
+    <button id="DBTN" onclick="dlgNext()">다음 ▶</button>
+  </div>
+</div>
+
+<!-- 배틀 -->
+<div id="BTL">
+  <div id="BB">
+    <div id="BTT">🗣️ 설득 배틀!</div>
+    <div class="bsd">
+      <div class="bs"><div class="bl">🧑‍🎤 나</div><span class="bsp">🧑‍🎤</span>
+        <div class="bh"><div class="bhf" id="BPF" style="background:#4ade80;width:100%"></div></div>
+        <div class="bht" id="BPT">100</div>
+      </div>
+      <div class="bvs">VS</div>
+      <div class="bs r"><div class="bl" id="BEL">상대</div><span class="bsp" id="BES">👔</span>
+        <div class="bh"><div class="bhf" id="BEF" style="background:#f87171;width:100%"></div></div>
+        <div class="bht" id="BET">100</div>
+      </div>
+    </div>
+    <div id="BL"><div>▶ 설득을 시작합니다!</div></div>
+    <div class="bac">
+      <button class="ba" id="BW" style="background:#4c1d95;border-color:#7c3aed" onclick="bAct('w')">🪄<br>팩트투척</button>
+      <button class="ba" id="BSH" style="background:#1e3a8a;border-color:#3b82f6" onclick="bAct('s')">🛡️<br>멘탈방어</button>
+      <button class="ba" id="BCA" style="background:#064e3b;border-color:#10b981" onclick="bAct('c')">🃏<br>포토카드<br>힐링</button>
+    </div>
+  </div>
+</div>
+
+<!-- 엔딩 -->
+<div id="END">
+  <div style="font-size:60px">🎊</div>
+  <h1 id="ET">엔딩</h1>
+  <div class="ec" id="EM"></div>
+  <div class="ec"><h2>📊 기록</h2><div id="ES" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;color:#666"></div></div>
+  <button class="sbtn" onclick="init()">▶ 다시하기</button>
+</div>
+
+<div id="TS"></div>
+<div id="DANGER"></div>
+<div id="POPUP"></div>
+
+<script>
+// 상수
+const MW=3200,GH=80,GRAV=0.55,JV=-12,SPD=3.5,NEAR=68;
+
+// 장애물: [x, 높이(지면=0,공중=양수), 타입]
+// 타입: 'doc'=서류, 'ppt'=PPT, 'coffee'=커피, 'pill'=영양제, 'ticket'=티켓
+const ITEMS_DEF=[
+  // 서류 (지면 + 공중 섞기)
+  {x:300, y:0,  t:'doc'},{x:550, y:60, t:'doc'},{x:820, y:0,  t:'doc'},
+  {x:1100,y:80, t:'doc'},{x:1250,y:0,  t:'doc'},{x:1450,y:60, t:'doc'},
+  {x:1700,y:0,  t:'doc'},{x:1900,y:80, t:'doc'},{x:2100,y:0,  t:'doc'},
+  {x:2300,y:60, t:'doc'},{x:2400,y:0,  t:'doc'},
+  // PPT (공중에 떠있음)
+  {x:380, y:50, t:'ppt'},{x:680, y:90, t:'ppt'},{x:980, y:60, t:'ppt'},
+  {x:1550,y:80, t:'ppt'},{x:1850,y:50, t:'ppt'},{x:2150,y:90, t:'ppt'},
+  // 아이템들
+  {x:160, y:100,t:'coffee'},{x:500, y:120,t:'coffee'},{x:900, y:90, t:'coffee'},
+  {x:1200,y:110,t:'coffee'},{x:1650,y:100,t:'coffee'},{x:2050,y:90, t:'coffee'},
+  {x:250, y:130,t:'pill'},{x:650, y:110,t:'pill'},{x:1050,y:130,t:'pill'},
+  {x:1400,y:120,t:'pill'},{x:1800,y:110,t:'pill'},{x:2200,y:130,t:'pill'},
+  {x:350, y:140,t:'ticket'},{x:750, y:150,t:'ticket'},{x:1150,y:140,t:'ticket'},
+  {x:1500,y:150,t:'ticket'},{x:1950,y:140,t:'ticket'},{x:2400,y:150,t:'ticket'},
+];
+const ITEM_INFO={
+  doc:    {e:'📄', dmg:15,  slow:0,   desc:'서류 직격! 멘탈 -15'},
+  ppt:    {e:'📞', dmg:0,   slow:0,  freeze:180, desc:'📞 긴급 회의 소집!! 3초간 이동불가'},
+  coffee: {e:'☕', heal:0,  speed:60, desc:'커피! 속도 UP! ☕'},
+  pill:   {e:'💊', heal:25, speed:0,  desc:'영양제! HP +25 💊'},
+  ticket: {e:'🎫', score:10,         desc:'콘서트 티켓! +10점 🎫'},
+};
+
+const ZONES=[
+  {x:0,   w:640,name:'🏘️ 팬들의 마을',sky:'#0d1b2a',gnd:'#78350f',gt:'#d97706'},
+  {x:640, w:640,name:'🏰 팬 길드',    sky:'#0c1445',gnd:'#1e3a8a',gt:'#2563eb'},
+  {x:1280,w:640,name:'🏪 머글 거리',  sky:'#052e16',gnd:'#14532d',gt:'#16a34a'},
+  {x:1920,w:640,name:'🏢 왕실 엔터',  sky:'#2d0a0a',gnd:'#7f1d1d',gt:'#dc2626'},
+  {x:2560,w:640,name:'✨ 성 깊은 곳', sky:'#1a0a2e',gnd:'#4c1d95',gt:'#7c3aed'},
+];
+const PLATS=[[180,90,80],[420,130,80],[700,100,80],[950,140,80],
+  [1350,90,80],[1600,120,80],[2000,100,80],[2200,140,80],[2620,100,80],[2850,130,80]];
+const NPCS=[
+  {id:'홈마법사',   x:200, e:'📸',n:'홈마법사',   c:'#a78bfa',mu:false,
+   l:['직캠 5000장 찍었는데 얼굴이 반만...😭','셔터 조절하다 마법을 터득했어.','왕자님 실종이요? 렌즈 청소 중.','포토카드 드릴게요. 멘탈에 좋아요.'],r:{t:'item',desc:'포토카드 획득!'}},
+  {id:'티켓팅마스터',x:450,e:'⚡',n:'티켓팅마스터',c:'#a78bfa',mu:false,
+   l:['손가락이 빛의 속도로 움직여야 해.','실패하면 손가락 스트레칭 3세트.','지금 예매창 대기 중입니다.','0.1% 확률도 도전하는 게 팬이지!'],r:{t:'stat',s:'atk',v:5,desc:'팩트력 +5'}},
+  {id:'학생팬',  x:750, e:'📚',n:'학생 팬',   c:'#a78bfa',mu:false,
+   l:['시험 기간에 컴백이... 인생이란.','덕업일치 꿈꾸며 예술대 진학.','인스타 새 게시물 뜰 때마다 공부 포기.','중간고사 때문에 같이 못 가요 ㅠ'],r:{t:'stat',s:'def',v:5,desc:'멘탈력 +5'}},
+  {id:'직장인팬',x:1050,e:'💼',n:'직장인 팬', c:'#a78bfa',mu:false,
+   l:['칼퇴 후 팬미팅 갔다가 야근 세 번.','연차는 컴백날을 위해 비축 중.','회의 중에도 마음은 팬카페에.','왕자님 걱정보다 상사 걱정이...'],r:{t:'mhp',v:20,desc:'최대 멘탈 +20'}},
+  {id:'편의점사장',x:1380,e:'🏪',n:'편의점사장',c:'#4ade80',mu:true,
+   l:['삼각김밥은 봤는데 왕자님은 못 봤어요.','신상 도시락 들어왔어요. 드시고 가요.','팬클럽? 편의점클럽은 알아요.','국밥집 옆에도 들려봐요.'],r:{t:'heal',v:50,desc:'HP +50'}},
+  {id:'버스기사', x:1560,e:'🚌',n:'버스 기사', c:'#4ade80',mu:true,
+   l:['어떤 공주님요? 이름이요?','저는 노선만 알아요.','뒷문으로 타세요.','다음 정거장: 국밥거리.'],r:{t:'stat',s:'atk',v:3,desc:'이동력 UP'}},
+  {id:'국밥집사장',x:1760,e:'🍲',n:'국밥집사장',c:'#4ade80',mu:true,sp:'guk',
+   l:['국밥 먹고 가. 힘써야 구하지.','실종됐다고? 국밥 먹어야 생각나지.','단골이 팬이래. 그래도 국밥은 먹더라.','밥이 답이야. 항상.'],r:{t:'heal',v:80,desc:'국밥 HP +80'}},
+  {id:'낚시아저씨',x:1960,e:'🎣',n:'낚시 아저씨',c:'#4ade80',mu:true,
+   l:['팬클럽? 난 낚시클럽인데.','기다리는 건 낚시나 팬이나 같아.','잡을 듯 말 듯이 낚시의 묘미지.','물고기는 거짓말 안 해.'],r:{t:'stat',s:'def',v:8,desc:'인내력 +8'}},
+  {id:'할머니',  x:2130,e:'👵',n:'할머니',    c:'#4ade80',mu:true,sp:'grma',
+   l:['그래서 밥은 먹었니?','위험해도 밥은 먹어야지.','밥 먹으면서 생각해. 밥이 먼저야.','다 먹었어? 이제 얘기해봐.','할미도 열심히 좋아했어. 그래도 밥은 먹었지.'],r:{t:'sp',desc:'진엔딩 조건 달성!'}},
+  {id:'스태프', x:2060,e:'📢',n:'왕실스태프', c:'#f87171',mu:false,ie:true,atk:15,hp:60,
+   l:['사내방송 포효!! 공식 채널 이용!','스케줄 중. 노코멘트!','(퇴근 후엔 저도 누군가의 팬인데...)','보도자료 나갈 때까지 노코멘트!'],df:'...저도 퇴근하면 콘서트 가요. 응원해줘서 고마워요.'},
+  {id:'SNS담당',x:2270,e:'📱',n:'SNS담당자',  c:'#f87171',mu:false,ie:true,atk:20,hp:80,
+   l:['떡밥 회수! 지금 바로!','맥락이 있어요. 풀영상 보세요.','(저도 퇴근하면 팬카페 눈팅해요...)','스포 주의!'],df:'저도 다른 아이돌 팬이에요... 같은 팬으로서 이해해요.'},
+  {id:'대표',   x:2450,e:'👔',n:'왕실 대표',  c:'#fb923c',mu:false,ie:true,atk:35,hp:200,ib:true,
+   l:['인스타 떡밥... 안 준다.','팬덤 혼란 야기! 필살기!','공식 유튜브 구독하세요.'],df:'20년 전 나도 팬이었지. 스케줄 풀어줄게.'},
+  {id:'왕자님',x:2700,e:'🤴',n:'왕자님',c:'#fbbf24',mu:false,ir:true,
+   l:['납치? 아니요... 스케줄이 많았어요.','걱정 끼쳐드려 정말 죄송해요.','저도 열심히 살고 있었어요.','국밥 먹었어요? 체력 챙겨요.']},
+  {id:'공주님',x:2950,e:'👸',n:'공주님',c:'#fbbf24',mu:false,ir:true,
+   l:['저도 컴백 준비 중이었어요.','모두 열심히 살고 있었군요.','할머니 말씀 들었어요? 밥 챙겨요.','함께해줘서 고마워요.']},
+];
+
+// 사운드
+let AC;
+function ac(){return AC||(AC=new(window.AudioContext||window.webkitAudioContext)());}
+function beep(f,d,w,v,t){try{const a=ac(),n=a.currentTime+(t||0),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type=w||'square';o.frequency.value=f;g.gain.setValueAtTime(v||.12,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.start(n);o.stop(n+d+.01);}catch(e){}}
+function snd(t){
+  if(t=='step')beep(100+Math.random()*30,.06,'square',.03);
+  if(t=='jump'){beep(280,.06,'square',.1);beep(420,.08,'square',.08,.07);}
+  if(t=='land')beep(90,.07,'square',.07);
+  if(t=='hit'){beep(160,.08,'square',.18);beep(110,.1,'square',.1,.09);}
+  if(t=='heal')[440,550,660].forEach((f,i)=>beep(f,.15,'sine',.12,i*.1));
+  if(t=='menu')beep(500,.07,'square',.08);
+  if(t=='fan')[523,659,784,1046].forEach((f,i)=>beep(f,.22,'square',.12,i*.12));
+  if(t=='win')[523,523,784,659,784,1046].forEach((f,i)=>beep(f,.2,'square',.13,i*.17));
+  if(t=='lock'){beep(180,.1,'square',.14);beep(120,.13,'square',.1,.1);}
+}
+
+// 상태
+let G={},K={l:false,r:false},raf=null,stepT=0,toastT=null;
+
+function initG(){
+  G={x:80,y:0,vx:0,vy:0,onG:true,fR:true,
+    p:{hp:100,mhp:100,atk:20,def:10},
+    def:[],royals:[],vis:[],guk:0,grma:0,mug:0,
+    done:{},near:null,dlgNpc:null,dlgIdx:0,
+    btlNpc:null,btlP:0,btlEhp:0,btlBusy:false,btlDone:false,
+    score:0, speedBoost:0, freeze:0, collected:new Set()};
+}
+
+// 월드 빌드
+function buildWorld(){
+  const W=document.getElementById('W');
+  W.innerHTML='';
+
+  ZONES.forEach(z=>{
+    const d=document.createElement('div');
+    d.style.cssText=`position:absolute;top:0;bottom:0;left:${z.x}px;width:${z.w}px;background:${z.sky};`;
+    for(let i=0;i<3;i++){
+      const cl=document.createElement('div');
+      cl.style.cssText=`position:absolute;top:${22+i*32}px;left:${40+i*90}px;width:${24+i*8}px;height:8px;background:rgba(255,255,255,.3);border-radius:2px;`;
+      d.appendChild(cl);
+    }
+    const gnd=document.createElement('div');
+    gnd.style.cssText=`position:absolute;bottom:0;left:0;right:0;height:${GH}px;background:${z.gnd};border-top:4px solid ${z.gt};`;
+    d.appendChild(gnd);
+    W.appendChild(d);
+  });
+
+  PLATS.forEach(([px,py,pw])=>{
+    const p=document.createElement('div');
+    p.style.cssText=`position:absolute;left:${px}px;bottom:${GH+py}px;width:${pw}px;height:14px;background:#92400e;border-top:4px solid #d97706;`;
+    W.appendChild(p);
+  });
+
+  const gate=document.createElement('div');
+  gate.id='GATE';
+  gate.style.cssText=`position:absolute;left:2540px;bottom:${GH}px;font-size:36px;line-height:1;z-index:5;`;
+  gate.textContent='🚧';
+  W.appendChild(gate);
+
+  // 아이템/장애물
+  ITEMS_DEF.forEach((item,i)=>{
+    const el=document.createElement('div');
+    el.className='OBJ';
+    el.id='OBJ-'+i;
+    el.style.cssText=`position:absolute;left:${item.x-14}px;bottom:${GH+item.y}px;font-size:28px;z-index:15;pointer-events:none;`;
+    el.textContent=ITEM_INFO[item.t].e;
+    W.appendChild(el);
+  });
+
+  NPCS.forEach(npc=>{
+    const el=document.createElement('div');
+    el.className='NPC';
+    el.id='NPC-'+npc.id;
+    el.style.cssText=`position:absolute;left:${npc.x-18}px;bottom:${GH}px;text-align:center;z-index:10;`;
+    el.innerHTML=`<div class="bb" id="BB-${npc.id}">${npc.ie?'🗣️[E]':'💬[E]'}</div><span class="fe" id="FE-${npc.id}">${npc.e}</span><div class="nm" style="color:${npc.c}">${npc.n}</div>`;
+    W.appendChild(el);
+  });
+
+  // 플레이어
+  const pl=document.createElement('div');
+  pl.id='PL';
+  pl.textContent='🧑‍🎤';
+  pl.style.cssText=`position:absolute;font-size:36px;line-height:1;z-index:20;bottom:${GH}px;left:${G.x-18}px;display:block;`;
+  W.appendChild(pl);
+}
+
+// 루프
+function loop(ts){
+  raf=requestAnimationFrame(loop);
+  const VP=document.getElementById('VP');
+  const vpW=VP.clientWidth;
+
+  // freeze 틱
+  if(G.freeze>0) G.freeze--;
+
+  // 물리
+  const frozen = G.freeze > 0;
+  const curSpd = frozen ? 0 : G.speedBoost > 0 ? SPD * 1.8 : G.speedBoost < 0 ? SPD * 0.4 : SPD;
+  G.vx=K.l?-curSpd:K.r?curSpd:0;
+  if(K.l)G.fR=false; if(K.r)G.fR=true;
+  G.x=Math.max(30,Math.min(MW-30,G.x+G.vx));
+  if(G.x>=2550&&!G.def.includes('대표')){G.x=2549;showToast('⛔ 대표를 먼저 설득하세요!');snd('lock');}
+
+  G.vy-=GRAV; G.y+=G.vy;
+  const wasG=G.onG; G.onG=false;
+  if(G.y<=0){G.y=0;if(G.vy<-1&&!wasG)snd('land');G.vy=0;G.onG=true;}
+  PLATS.forEach(([pfx,pfy,pfw])=>{
+    if(G.x>pfx-12&&G.x<pfx+pfw+12&&G.y>=pfy&&G.y<=pfy+12&&G.vy<=0){
+      G.y=pfy;if(G.vy<-1&&!wasG)snd('land');G.vy=0;G.onG=true;
+    }
+  });
+
+  // 플레이어 위치 — bottom = GH + G.y
+  const pl=document.getElementById('PL');
+  if(pl){
+    pl.style.left=(G.x-18)+'px';
+    pl.style.bottom=(GH+G.y)+'px';
+    // freeze 중엔 떨림 효과
+    if(G.freeze>0){
+      const shake=(Math.random()-0.5)*6;
+      pl.style.transform=`scaleX(${G.fR?1:-1}) translateX(${shake}px)`;
+    } else {
+      pl.style.transform=G.fR?'scaleX(1)':'scaleX(-1)';
+    }
+  }
+
+  // 카메라
+  const camX=Math.max(0,Math.min(MW-vpW,G.x-vpW/2+20));
+  document.getElementById('W').style.transform=`translateX(${-camX}px)`;
+
+  // 존 배경
+  const zone=ZONES.find(z=>G.x>=z.x&&G.x<z.x+z.w)||ZONES[0];
+  VP.style.background=zone.sky;
+  document.getElementById('ZN').textContent=zone.name;
+
+  // NPC 감지
+  let near=null;
+  NPCS.forEach(npc=>{
+    if(npc.ie&&G.def.includes(npc.id))return;
+    const bb=document.getElementById('BB-'+npc.id);
+    const isNear=Math.abs(npc.x-G.x)<NEAR;
+    if(isNear)near=npc;
+    if(bb)bb.style.display=isNear?'block':'none';
+  });
+  G.near=near;
+  const CT=document.getElementById('CT');
+  const CTI=document.getElementById('CTI');
+  const CTL=document.getElementById('CTL');
+  if(near){CT.classList.add('lit');CTI.textContent=near.ie?'🗣️':'💬';CTL.textContent='[E]탭';}
+  else{CT.classList.remove('lit');CTI.textContent='💬';CTL.textContent='탭';}
+
+  // HUD
+  const p=G.p;
+  const pct=Math.max(0,Math.min(100,(p.hp/p.mhp)*100));
+  document.getElementById('HPF').style.width=pct+'%';
+  document.getElementById('HPF').style.background=p.hp>p.mhp*.4?'#4ade80':'#f87171';
+  document.getElementById('HTXT').textContent=p.hp;
+  document.getElementById('HATK').textContent='🪄'+p.atk;
+  document.getElementById('HMUG').textContent='💚'+G.mug+'/10';
+  document.getElementById('HROY').textContent=G.royals.length===2?'✅':'🔍'+G.royals.length+'/2';
+
+  if(G.vx!==0&&G.onG&&ts-stepT>220){snd('step');stepT=ts;}
+
+  // ── 아이템/장애물 충돌 ──
+  ITEMS_DEF.forEach((item,i)=>{
+    if(G.collected.has(i))return;
+    const dx=Math.abs(item.x-G.x);
+    const dy=Math.abs((item.y+14)-(G.y+14)); // 대략적 충돌
+    if(dx<28&&dy<32){
+      G.collected.add(i);
+      const el=document.getElementById('OBJ-'+i);
+      if(el)el.style.display='none';
+      const info=ITEM_INFO[item.t];
+      if(item.t==='doc'||item.t==='ppt'){
+        // 장애물
+        G.p.hp=Math.max(0,G.p.hp-(info.dmg||0));
+        if(info.slow)G.speedBoost=Math.min(G.speedBoost,-info.slow);
+        if(info.freeze)G.freeze=info.freeze;
+        snd('hit');
+        // 전화벨 효과음
+        if(item.t==='ppt'){beep(800,.08,'square',.15);beep(800,.08,'square',.15,.2);beep(800,.08,'square',.15,.4);}
+        showPopup(info.e+' '+info.desc);
+      } else {
+        // 아이템
+        if(info.heal) G.p.hp=Math.min(G.p.mhp,G.p.hp+info.heal);
+        if(info.speed) G.speedBoost=info.speed;
+        if(info.score) G.score+=info.score;
+        snd(item.t==='pill'?'heal':item.t==='ticket'?'fan':'menu');
+        showPopup(info.e+' '+info.desc);
+      }
+    }
+  });
+
+  // 속도 부스트 틱
+  if(G.speedBoost>0) G.speedBoost--;
+  if(G.speedBoost<0) G.speedBoost++;
+
+  // HP 위험 오버레이
+  const danger=document.getElementById('DANGER');
+  if(danger){
+    const ratio=G.p.hp/G.p.mhp;
+    if(ratio<0.3) danger.style.background='rgba(255,0,0,'+((0.3-ratio)*0.8)+')';
+    else danger.style.background='rgba(255,0,0,0)';
+  }
+
+  // 점수 HUD
+  const hs=document.getElementById('HSCORE');
+  if(hs)hs.textContent='🎫'+G.score;
+}
+
+function showPopup(msg){
+  const el=document.getElementById('POPUP');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.display='block';
+  el.style.animation='none';
+  void el.offsetWidth;
+  el.style.animation='popUp .9s ease forwards';
+  setTimeout(()=>el.style.display='none',900);
+}
+
+function doJump(){if(G.onG){G.vy=Math.abs(JV);G.onG=false;snd('jump');}}
+function interact(){
+  const n=G.near;if(!n)return;
+  if(n.ie&&!G.def.includes(n.id)){snd('hit');openBtl(n);}
+  else{snd('menu');openDlg(n);}
+}
+
+// 토스트
+function showToast(m,ms=2200){
+  const e=document.getElementById('TS');
+  e.textContent=m;e.style.display='block';
+  clearTimeout(toastT);toastT=setTimeout(()=>e.style.display='none',ms);
+}
+
+// 대화
+function openDlg(npc){G.dlgNpc=npc;G.dlgIdx=0;renderDlg();document.getElementById('DLG').style.display='flex';}
+function renderDlg(){
+  const n=G.dlgNpc;
+  document.getElementById('DF').textContent=n.e;
+  document.getElementById('DN').textContent=n.n;
+  const t=document.getElementById('DTP');t.style.color=n.c;
+  t.textContent=n.ie?'🗣️ 설득 대상':n.ir?'⭐ 탐색 목표':n.mu?'💚 머글':'💜 팬';
+  document.getElementById('DP').textContent=(G.dlgIdx+1)+'/'+n.l.length;
+  document.getElementById('DT').textContent=n.l[G.dlgIdx];
+  document.getElementById('DBTN').textContent=G.dlgIdx<n.l.length-1?'다음 ▶':'확인 ✓';
+}
+function dlgNext(){
+  snd('menu');const n=G.dlgNpc;
+  if(n.mu)G.mug=Math.min(G.mug+1,10);
+  if(n.sp==='guk')G.guk++;
+  if(n.sp==='grma')G.grma++;
+  if(G.dlgIdx<n.l.length-1){G.dlgIdx++;renderDlg();return;}
+  document.getElementById('DLG').style.display='none';
+  applyRew(n.r);
+  if(!G.vis.includes(n.id))G.vis.push(n.id);
+  if(n.ir&&!G.royals.includes(n.id)){
+    G.royals.push(n.id);G.done[n.id]=true;
+    const f=document.getElementById('FE-'+n.id);if(f)f.textContent='✅';
+    snd('win');showToast('🎊 '+n.n+' 발견!',3000);
+    if(G.royals.includes('왕자님')&&G.royals.includes('공주님'))
+      setTimeout(()=>{cancelAnimationFrame(raf);showEnd();},700);
+  }
+  G.dlgNpc=null;
+}
+function applyRew(r){
+  if(!r)return;const p=G.p;
+  if(r.t==='heal'){p.hp=Math.min(p.mhp,p.hp+r.v);snd('heal');showToast('💚 '+r.desc);}
+  else if(r.t==='item'){snd('fan');showToast('🎁 '+r.desc);}
+  else if(r.t==='stat'){p[r.s]=(p[r.s]||0)+r.v;snd('fan');showToast('⬆️ '+r.desc);}
+  else if(r.t==='mhp'){p.mhp+=r.v;p.hp=Math.min(p.hp+r.v,p.mhp);snd('fan');showToast('⬆️ '+r.desc);}
+  else if(r.t==='sp'){snd('fan');showToast('✨ '+r.desc,2800);}
+}
+
+// 배틀
+const EA=['SNS 떡밥 투하!','야근 피로 전파!','노코멘트 압박!','인스타 떡밥 회수!'];
+function openBtl(npc){
+  G.btlNpc=npc;G.btlP=G.p.hp;G.btlEhp=npc.hp;G.btlBusy=false;G.btlDone=false;
+  document.getElementById('BTT').textContent=npc.ib?'🗣️ 최종 설득 배틀!!':'🗣️ 설득 배틀!';
+  document.getElementById('BEL').textContent=npc.ib?'👔 보스':'🙅 설득 대상';
+  document.getElementById('BES').textContent=npc.e;
+  document.getElementById('BEF').style.background=npc.ib?'#fb923c':'#f87171';
+  setBHP();bLog('▶ '+npc.n+'이(가) 막아섰다!',true);setBB(false);
+  document.getElementById('BTL').style.display='flex';
+}
+function setBHP(){
+  const pm=G.p.mhp,em=G.btlNpc.hp;
+  document.getElementById('BPF').style.width=Math.max(0,(G.btlP/pm)*100)+'%';
+  document.getElementById('BPF').style.background=G.btlP>pm*.4?'#4ade80':'#f87171';
+  document.getElementById('BPT').textContent=G.btlP+'/'+pm;
+  document.getElementById('BEF').style.width=Math.max(0,(G.btlEhp/em)*100)+'%';
+  document.getElementById('BET').textContent=G.btlEhp+'/'+em;
+}
+function bLog(m,cl){
+  const l=document.getElementById('BL');if(cl)l.innerHTML='';
+  const d=document.createElement('div');d.textContent=m;l.appendChild(d);
+  while(l.children.length>5)l.removeChild(l.firstChild);
+}
+function setBB(d){['BW','BSH','BCA'].forEach(id=>document.getElementById(id).disabled=d);}
+function bAct(t){
+  if(G.btlBusy||G.btlDone)return;G.btlBusy=true;setBB(true);
+  const p=G.p,e=G.btlNpc;
+  if(t==='w'){
+    const d=p.atk+~~(Math.random()*12);G.btlEhp=Math.max(0,G.btlEhp-d);snd('hit');setBHP();
+    bLog('▶ 🪄 팩트 투척! 멘탈 데미지 '+d+'!');
+    if(G.btlEhp<=0){bWin();return;}setTimeout(eTurn,750);
+  }else if(t==='s'){
+    const blk=~~(p.def*.7)+5;bLog('▶ 🛡️ 멘탈 방어! '+blk+' 차단!');snd('menu');
+    setTimeout(()=>{
+      const raw=Math.max(1,e.atk-p.def+~~(Math.random()*8)-3),d=Math.max(0,raw-blk);
+      G.btlP=Math.max(0,G.btlP-d);snd(d===0?'heal':'hit');setBHP();
+      bLog('▶ '+(d===0?'완전 차단!':e.n+' '+EA[~~(Math.random()*EA.length)]+' ('+d+')'));
+      if(G.btlP<=0){bLose();return;}G.btlBusy=false;setBB(false);
+    },750);
+  }else{
+    const h=35;G.btlP=Math.min(p.mhp,G.btlP+h);snd('heal');setBHP();
+    bLog('▶ 🃏 포토카드 힐링! 멘탈 +'+h+'!');setTimeout(eTurn,750);
+  }
+}
+function eTurn(){
+  const e=G.btlNpc,p=G.p,d=Math.max(1,e.atk-p.def+~~(Math.random()*8)-3);
+  G.btlP=Math.max(0,G.btlP-d);snd('hit');setBHP();
+  bLog('▶ '+e.e+' '+EA[~~(Math.random()*EA.length)]+' ('+d+')');
+  if(G.btlP<=0){bLose();return;}G.btlBusy=false;setBB(false);
+}
+function bWin(){
+  G.btlDone=true;bLog('▶ ✅ 설득 완료!');snd('win');
+  G.def.push(G.btlNpc.id);G.p.hp=G.btlP;
+  const nel=document.getElementById('NPC-'+G.btlNpc.id);if(nel)nel.style.opacity='.3';
+  const df=G.btlNpc.df;
+  setTimeout(()=>{document.getElementById('BTL').style.display='none';showToast(G.btlNpc.e+' "'+df+'"',4000);G.btlNpc=null;},900);
+}
+function bLose(){
+  G.btlDone=true;bLog('▶ 💀 멘탈이 무너졌다...');snd('hit');G.p.hp=30;
+  setTimeout(()=>{document.getElementById('BTL').style.display='none';showToast('💀 멘탈 붕괴... 국밥 먹고 회복!');G.btlNpc=null;},900);
+}
+
+// 엔딩
+function showEnd(){
+  document.getElementById('G').style.display='none';
+  const te=G.guk>=10&&G.grma>=3&&G.mug>=5;
+  document.getElementById('ET').textContent=te?'✨ 진엔딩 달성!':'🎉 엔딩';
+  const m=document.getElementById('EM');
+  if(te)m.innerHTML=`<h2>《덕질도 좋지만 밥도 먹자》</h2><p>왕자님도 열심히 살고,<br>공주님도 열심히 살고,<br>직원들도 퇴근하면 누군가의 팬이었고,<br>머글도 행복하게 살고 있었다.<br><br>🎫 티켓 점수: <b style="color:#f9e04b">${G.score}점</b><br>국밥 ${G.guk}그릇을 먹으면서 이걸 알게 됐다. 🍲</p>`;
+  else m.innerHTML=`<h2>왕자님과 공주님을 찾았다</h2><p>납치가 아니었다. 스케줄이 많았을 뿐.<br>직원들도 퇴근하면 누군가의 팬이었다.<br>다들 열심히 살고 있었다.<br><br><span style="font-size:11px;color:#555">💡진엔딩: 국밥 10회(${G.guk}/10) 머글 5명(${G.mug}/5) 할머니 3회(${G.grma}/3)</span></p>`;
+  document.getElementById('ES').innerHTML=`<div>🍲 국밥 ${G.guk}그릇</div><div>💚 머글 ${G.mug}명</div><div>🗣️ 설득 ${G.def.length}명</div><div>🎫 점수 ${G.score}점</div>`;
+  document.getElementById('END').style.display='flex';
+}
+
+// 시작
+function init(){
+  document.getElementById('T').style.display='none';
+  document.getElementById('END').style.display='none';
+  document.getElementById('G').style.display='flex';
+  snd('fan');initG();buildWorld();
+  cancelAnimationFrame(raf);
+  raf=requestAnimationFrame(loop);
+}
+
+// START 버튼
+document.getElementById('SBTN').onclick=init;
+
+// 키보드
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a')K.l=true;
+  if(e.key==='ArrowRight'||e.key==='d')K.r=true;
+  if((e.key==='ArrowUp'||e.key===' ')&&G.onG){e.preventDefault();doJump();}
+  if((e.key==='e'||e.key==='E')&&document.getElementById('G').style.display==='flex')interact();
+  if((e.key==='Enter'||e.key===' ')&&document.getElementById('DLG').style.display==='flex'){e.preventDefault();dlgNext();}
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a')K.l=false;
+  if(e.key==='ArrowRight'||e.key==='d')K.r=false;
+});
+</script>
+</body>
+</html>
