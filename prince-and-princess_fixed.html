@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>박성지의 성지순례</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;background:#0d0d1a;font-family:monospace;overflow:hidden;color:#fff;}
+
+/* ── 공통 오버레이 ── */
+.overlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;z-index:500;}
+.overlay.on{display:flex;}
+.card{background:#111;border:4px solid #7c3aed;padding:20px;max-width:460px;width:100%;box-shadow:6px 6px #4c1d95;}
+.btn{background:#7c3aed;color:#fff;border:4px solid #a78bfa;padding:14px 36px;font-family:monospace;font-size:clamp(13px,3.5vw,17px);cursor:pointer;}
+.btn:active{transform:translate(2px,2px);}
+.btn.red{background:#7f1d1d;border-color:#f87171;}
+.btn.green{background:#14532d;border-color:#4ade80;}
+
+/* ── 티켓팅 실패 인트로 ── */
+#TICKETING{background:#0d0d1a;}
+#tick-count{font-size:clamp(48px,15vw,80px);color:#f9e04b;font-weight:bold;}
+#tick-msg{font-size:clamp(13px,3.5vw,18px);color:#f87171;line-height:2;}
+#tick-sub{font-size:clamp(11px,2.8vw,15px);color:#888;line-height:2;}
+
+/* ── 인트로 ── */
+#INTRO{background:#0d0d1a;}
+.intro-line{display:block;opacity:0;font-size:clamp(13px,3.5vw,18px);line-height:2.8;transition:opacity .4s;}
+.intro-line.show{opacity:1;}
+.yw{color:#f9e04b;}.rd{color:#f87171;}.gn{color:#4ade80;}
+
+/* ── 게임 ── */
+#GAME{position:fixed;inset:0;flex-direction:column;display:none;}
+#HUD{height:38px;background:#000;border-bottom:3px solid #333;display:flex;align-items:center;padding:0 10px;gap:8px;flex-shrink:0;}
+#HUD span{font-size:clamp(9px,2.2vw,13px);}
+#HPB{width:100px;height:11px;background:#333;border:2px solid #555;flex-shrink:0;}
+#HPF{height:100%;background:#4ade80;transition:width .3s,background .3s;}
+#VP{flex:1;position:relative;overflow:hidden;}
+#W{position:absolute;top:0;left:0;height:100%;width:4800px;}
+#ZNM{position:absolute;top:5px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);border:2px solid #555;color:#f9e04b;padding:2px 12px;font-size:10px;z-index:30;pointer-events:none;white-space:nowrap;}
+#CTRL{height:90px;background:#000;border-top:3px solid #222;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;flex-shrink:0;}
+.cb{width:54px;height:54px;background:#1a1a1a;border:3px solid #4c1d95;color:#a78bfa;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:monospace;touch-action:none;user-select:none;-webkit-user-select:none;}
+.cb:active{background:#2d0a5e;}
+#CJ{border-color:#1d4ed8;color:#93c5fd;flex-direction:column;font-size:11px;gap:1px;}
+#CT{width:58px;height:58px;border-color:#7c3aed;color:#c4b5fd;flex-direction:column;gap:2px;font-size:10px;}
+#CT.lit{background:#6d28d9;border-color:#f9e04b;color:#f9e04b;}
+.dp{display:flex;gap:8px;}
+
+/* ── 알바 미니게임 ── */
+#MINIGAME{background:rgba(0,0,0,.95);z-index:300;}
+#mg-title{font-size:clamp(16px,5vw,22px);color:#f9e04b;}
+#mg-desc{font-size:clamp(11px,3vw,14px);color:#aaa;}
+#mg-timer-bar{width:100%;max-width:400px;height:12px;background:#333;border:2px solid #555;margin:4px 0;}
+#mg-timer-fill{height:100%;background:#4ade80;transition:width .1s linear;}
+#mg-earn{font-size:clamp(14px,4vw,20px);color:#4ade80;}
+/* 카페/편의점 버튼형 */
+#mg-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:400px;width:100%;}
+.mg-btn{padding:16px 8px;background:#1a1a2e;border:3px solid #4c1d95;color:#fff;font-family:monospace;font-size:clamp(12px,3vw,16px);cursor:pointer;}
+.mg-btn:active{background:#2d0a5e;}
+.mg-btn.correct{border-color:#4ade80;background:#052e16;}
+.mg-btn.wrong{border-color:#f87171;background:#2d0a0a;}
+#mg-order{font-size:clamp(18px,6vw,28px);color:#fff;background:#0d0d1a;border:3px solid #7c3aed;padding:12px 24px;margin:4px 0;}
+/* 국밥 받기형 */
+#mg-field{width:100%;max-width:400px;height:160px;background:#0d0d1a;border:3px solid #7c3aed;position:relative;overflow:hidden;}
+#mg-catcher{position:absolute;bottom:8px;width:50px;height:20px;background:#7c3aed;border-radius:4px;text-align:center;font-size:18px;line-height:1.1;}
+.mg-drop{position:absolute;font-size:22px;line-height:1;}
+#mg-score{font-size:clamp(13px,3.5vw,18px);color:#f9e04b;}
+#mg-field-ctrl{display:flex;gap:12px;margin-top:8px;}
+
+/* ── 이벤트 팝업 ── */
+#EVENT{background:rgba(0,0,0,.9);z-index:400;}
+#ev-icon{font-size:52px;}
+#ev-title{font-size:clamp(15px,4.5vw,22px);color:#f9e04b;}
+#ev-desc{font-size:clamp(12px,3vw,16px);color:#e2e8f0;line-height:2;}
+#ev-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+
+/* ── 대화 ── */
+#DLG{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:200;display:none;align-items:flex-end;justify-content:center;padding:0 12px 12px;}
+#DLG.on{display:flex;}
+#DB{background:#0d0d1a;border:4px solid #7c3aed;padding:18px;max-width:480px;width:100%;}
+#DH{display:flex;align-items:center;gap:12px;border-bottom:2px solid #333;padding-bottom:12px;margin-bottom:14px;}
+#DF{font-size:38px;}#DN{font-size:clamp(13px,3.5vw,17px);color:#f9e04b;}
+#DTP{font-size:11px;margin-top:3px;}#DP{font-size:11px;color:#555;margin-left:auto;}
+#DT{font-size:clamp(12px,3vw,15px);color:#e2e8f0;line-height:2.2;min-height:52px;margin-bottom:14px;}
+#DBTN{width:100%;background:#7c3aed;color:#fff;border:4px solid #a78bfa;padding:13px;font-family:monospace;font-size:clamp(12px,3.5vw,16px);cursor:pointer;}
+
+/* ── D-DAY 인트로 ── */
+#DDAY{background:#0d0d1a;}
+.dday-line{font-size:clamp(13px,3.5vw,18px);color:#e2e8f0;line-height:3;opacity:0;transition:opacity .5s;}
+.dday-line.show{opacity:1;}
+
+/* ── 공연장 엔딩 ── */
+#CONCERT{background:#000;z-index:600;}
+#stage{width:100%;max-width:500px;height:200px;position:relative;overflow:hidden;background:linear-gradient(180deg,#1a0a2e,#000);}
+#stage-lights{position:absolute;top:0;left:0;right:0;height:100%;pointer-events:none;}
+#stage-silhouette{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:clamp(48px,15vw,72px);filter:brightness(0);animation:silPulse 2s ease-in-out infinite;}
+#concert-msg{font-size:clamp(13px,3.5vw,18px);color:#e2e8f0;line-height:2.4;max-width:400px;}
+#lightstick-wave{font-size:clamp(16px,4vw,22px);letter-spacing:4px;animation:wave 1.5s ease-in-out infinite;}
+#btn-end{margin-top:8px;}
+
+/* ── 엔딩 ── */
+#ENDING{background:#0d0d1a;overflow-y:auto;}
+#ENDING h1{font-size:clamp(16px,5vw,24px);color:#f9e04b;}
+.ecard{background:#111;border:3px solid #7c3aed;padding:18px;max-width:440px;width:100%;}
+.ecard h2{font-size:clamp(12px,3vw,16px);color:#a78bfa;margin-bottom:10px;}
+.ecard p{font-size:clamp(11px,2.5vw,14px);color:#bbb;line-height:2.2;}
+
+/* ── 유틸 ── */
+#TS{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#f9e04b;color:#000;border:3px solid #b45309;padding:12px 20px;font-size:13px;z-index:999;white-space:nowrap;display:none;}
+#POPUP{position:fixed;top:55px;left:50%;transform:translateX(-50%);font-size:18px;z-index:998;pointer-events:none;display:none;}
+#DANGER{position:fixed;inset:0;background:rgba(255,0,0,0);pointer-events:none;z-index:60;transition:background .15s;}
+#PARTICLES{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden;}
+#GAMEOVER{background:rgba(0,0,0,.95);z-index:700;}
+#GAMEOVER h2{font-size:clamp(18px,5vw,26px);color:#f87171;}
+
+/* ── 애니메이션 ── */
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes popUp{0%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-50px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes particle{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-80px)}}
+@keyframes silPulse{0%,100%{filter:brightness(0.15)}50%{filter:brightness(0.35)}}
+@keyframes wave{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes lightBeam{0%,100%{opacity:.3;transform:rotate(-15deg)}50%{opacity:.7;transform:rotate(-15deg) scaleY(1.1)}}
+@keyframes countDown{0%{transform:scale(1.3);opacity:0}50%{opacity:1}100%{transform:scale(0.8);opacity:0}}
+@keyframes plBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes plWalkR{0%,100%{transform:translateY(0) rotate(5deg)}50%{transform:translateY(-3px) rotate(-5deg)}}
+@keyframes plWalkL{0%,100%{transform:translateY(0) rotate(-5deg) scaleX(-1)}50%{transform:translateY(-3px) rotate(5deg) scaleX(-1)}}
+@keyframes plJump{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-6px) rotate(15deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 8px #f9e04b}50%{box-shadow:0 0 20px #f9e04b,0 0 40px #f9e04b44}}
+</style>
+</head>
+<body>
+
+<!-- 티켓팅 실패 인트로 -->
+<div id="TICKETING" class="overlay on">
+  <div id="tick-count">🎫</div>
+  <div id="tick-msg"></div>
+  <div id="tick-sub"></div>
+</div>
+
+<!-- 튜토리얼 -->
+<div id="TUTORIAL" class="overlay" style="background:rgba(0,0,0,.95);">
+  <div style="font-size:clamp(36px,10vw,52px)">👩🪄👗</div>
+  <div style="font-size:clamp(15px,4vw,20px);color:#f9e04b">박성지의 성지순례</div>
+  <div class="card" style="text-align:left;max-width:420px;">
+    <div style="font-size:clamp(12px,3vw,15px);color:#f9e04b;margin-bottom:12px">🎮 조작법</div>
+    <div style="font-size:clamp(11px,2.8vw,14px);color:#e2e8f0;line-height:2.4;">
+      <div>⬅️ ➡️ &nbsp;이동</div>
+      <div>⬆️ / SPACE &nbsp;점프 (더블점프 가능!)</div>
+      <div>E &nbsp;대화 / 알바</div>
+      <div style="margin-top:8px;color:#aaa">모바일: 하단 버튼 조작</div>
+    </div>
+  </div>
+  <div class="card" style="text-align:left;max-width:420px;">
+    <div style="font-size:clamp(12px,3vw,15px);color:#f9e04b;margin-bottom:12px">🎯 목표</div>
+    <div style="font-size:clamp(11px,2.8vw,14px);color:#e2e8f0;line-height:2.4;">
+      <div>💰 알바해서 <span style="color:#f9e04b">50,000원</span> 모으기</div>
+      <div>🎫 콘서트 티켓 구매하기</div>
+      <div style="margin-top:8px;color:#888;font-size:11px">* NPC 근처에서 E 누르면 알바 가능!</div>
+    </div>
+  </div>
+  <button class="btn" onclick="closeTutorial()">▶ 출발!</button>
+  <div style="font-size:10px;color:#444">다시 보지 않으려면 그냥 출발 누르면 돼 😄</div>
+</div>
+
+<!-- 인트로 -->
+<div id="INTRO" class="overlay">
+  <div style="font-size:clamp(40px,12vw,64px);animation:bob 1.5s steps(2) infinite">🗺️</div>
+  <div id="intro-lines">
+    <span class="intro-line" id="il1">티켓팅 또 실패했다. 😭</span>
+    <span class="intro-line" id="il2">그래도 포기 못 해.</span>
+    <span class="intro-line" id="il3">다음 콘서트엔 <span class="yw">꼭 간다.</span></span>
+    <span class="intro-line" id="il4">앨범 패키지 샀더니 <span class="rd">겹카.</span></span>
+    <span class="intro-line" id="il5">친구한테 받은 포토카드 1장.</span>
+    <span class="intro-line" id="il6"><span class="gn">돈 모아서 가즈아. 🎫</span></span>
+  </div>
+  <button class="btn" id="btn-start" style="display:none" onclick="startGame()">▶ 성지순례 출발</button>
+  <div style="font-size:10px;color:#444;margin-top:4px">← → 이동 &nbsp;↑/SPACE 점프 &nbsp;E 대화<br>모바일: 하단 버튼 조작</div>
+</div>
+
+<!-- 게임 -->
+<div id="GAME">
+  <div id="HUD">
+    <span>👩</span>
+    <div id="HPB"><div id="HPF"></div></div>
+    <span id="HTXT">100</span>
+    <span id="HMONEY" style="color:#f9e04b;margin-left:6px">💰0원</span>
+    <span id="HGOAL" style="color:#888;margin-left:4px">/50,000원</span>
+    <span id="HMUG" style="color:#4ade80;margin-left:auto">💚0/5</span>
+    <span id="HSPOT" style="margin-left:4px">📍0/4</span>
+    <button id="SOUNDBTN" onclick="toggleSound()" style="background:none;border:2px solid #444;color:#fff;font-size:14px;padding:2px 6px;cursor:pointer;margin-left:6px;font-family:monospace">🔊</button>
+  </div>
+  <div id="VP">
+    <div id="ZNM">🏘️ 우리 동네</div>
+    <div id="W"></div>
+  </div>
+  <div id="CTRL">
+    <div class="dp">
+      <button class="cb" onpointerdown="K.l=true" onpointerup="K.l=false" onpointerleave="K.l=false" onpointercancel="K.l=false">◀</button>
+      <button class="cb" onpointerdown="K.r=true" onpointerup="K.r=false" onpointerleave="K.r=false" onpointercancel="K.r=false">▶</button>
+      <button class="cb" id="CJ" onpointerdown="doJump()">▲<span style="font-size:7px">점프</span></button>
+    </div>
+    <button class="cb" id="CT" onclick="interact()">
+      <span id="CTI" style="font-size:22px">💬</span>
+      <span id="CTL" style="font-size:8px">탭</span>
+    </button>
+  </div>
+</div>
+
+<!-- 알바 미니게임 -->
+<div id="MINIGAME" class="overlay">
+  <div id="mg-title">☕ 카페 알바</div>
+  <div id="mg-desc">주문이 들어오면 맞는 버튼을 눌러요!</div>
+  <div id="mg-timer-bar"><div id="mg-timer-fill" style="width:100%"></div></div>
+  <div id="mg-score">0원 벌었어요</div>
+  <div id="mg-order" style="display:none"></div>
+  <div id="mg-btns"></div>
+  <div id="mg-field" style="display:none">
+    <div id="mg-catcher">🍲</div>
+  </div>
+  <div id="mg-field-ctrl" style="display:none">
+    <button class="cb" onpointerdown="mgK.l=true" onpointerup="mgK.l=false" onpointerleave="mgK.l=false">◀</button>
+    <button class="cb" onpointerdown="mgK.r=true" onpointerup="mgK.r=false" onpointerleave="mgK.r=false">▶</button>
+  </div>
+  <div id="mg-earn"></div>
+</div>
+
+<!-- 이벤트 팝업 -->
+<div id="EVENT" class="overlay">
+  <div class="card" style="text-align:center;">
+    <div id="ev-icon">🎁</div>
+    <div id="ev-title" style="margin:10px 0">이벤트</div>
+    <div id="ev-desc" style="margin-bottom:16px"></div>
+    <div id="ev-btns"></div>
+  </div>
+</div>
+
+<!-- 대화 -->
+<div id="DLG">
+  <div id="DB">
+    <div id="DH">
+      <span id="DF">🧑</span>
+      <div><div id="DN">-</div><div id="DTP">-</div></div>
+      <span id="DP">1/1</span>
+    </div>
+    <div id="DT"></div>
+    <button id="DBTN" onclick="dlgNext()">다음 ▶</button>
+  </div>
+</div>
+
+<!-- D-Day 인트로 -->
+<div id="DDAY" class="overlay">
+  <div style="font-size:clamp(48px,14vw,72px);animation:bob 1s steps(2) infinite">🎫</div>
+  <div id="dday-lines">
+    <div class="dday-line" id="dd1">D-day. 드디어 오늘이다.</div>
+    <div class="dday-line" id="dd2">친구 포토카드 챙겼다. 🃏</div>
+    <div class="dday-line" id="dd3">응원봉 충전했다. 🪄</div>
+    <div class="dday-line" id="dd4">가자. 💜</div>
+  </div>
+</div>
+
+<!-- 공연장 -->
+<div id="CONCERT" class="overlay">
+  <div id="stage">
+    <canvas id="light-canvas" style="position:absolute;inset:0;width:100%;height:100%"></canvas>
+    <div id="stage-silhouette">🎤</div>
+  </div>
+  <div id="lightstick-wave">🪄🪄🪄🪄🪄</div>
+  <div id="concert-msg"></div>
+  <button class="btn" id="btn-end" onclick="showEnding()">오늘 하루 잘 살았다 💜</button>
+</div>
+
+<!-- 게임오버 -->
+<div id="GAMEOVER" class="overlay">
+  <div style="font-size:56px">💀</div>
+  <h2>멘탈 붕괴...</h2>
+  <p style="font-size:13px;color:#888;line-height:2">서류와 이메일에 압도당했다<br>그래도 콘서트는 포기 못 해</p>
+  <div id="GO_INFO" style="font-size:13px;color:#f9e04b;margin-top:4px"></div>
+  <button class="btn" style="margin-top:8px" onclick="restartGame()">▶ 다시 출발</button>
+  <div style="font-size:11px;color:#444;margin-top:6px">국밥 먹고 다시 힘내자 🍲</div>
+</div>
+
+<!-- 엔딩 -->
+<div id="ENDING" class="overlay">
+  <div style="font-size:56px;animation:bob 1.5s steps(2) infinite">🏠</div>
+  <h1 id="END_TTL">오늘 하루 잘 살았다</h1>
+  <div class="ecard" id="END_MAIN"></div>
+  <div class="ecard">
+    <h2>📊 오늘의 기록</h2>
+    <div id="END_STATS" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:#666;"></div>
+  </div>
+  <button class="btn" onclick="goTitle()">▶ 처음으로</button>
+</div>
+
+<div id="TS"></div>
+<div id="DANGER"></div>
+<div id="POPUP"></div>
+<div id="PARTICLES"></div>
+
+<script>
+// ══ 상수 ══
+const MW=4800,GH=80,GRAV=0.45,JV=15,SPD=3.5,NEAR=68,TICKET_GOAL=50000;
+
+// ══ 구역 ══
+const ZONES=[
+  {x:0,   w:800,name:'🏘️ 우리 동네',      sky:'#0d1b2a',gnd:'#374151',gt:'#6b7280',sign:null},
+  {x:800, w:800,name:'🍲 성지 국밥집',     sky:'#1a0a00',gnd:'#78350f',gt:'#d97706',sign:'최애가 여기서 국밥 먹었대!!'},
+  {x:1600,w:800,name:'🏪 성지 편의점',     sky:'#001a0d',gnd:'#14532d',gt:'#16a34a',sign:'최애 광고 붙어있는 편의점!!'},
+  {x:2400,w:800,name:'☕ 생일카페',        sky:'#1a0a2e',gnd:'#4c1d95',gt:'#7c3aed',sign:'팬들이 차린 생일카페 🎂'},
+  {x:3200,w:800,name:'🚌 성지 버스정류장', sky:'#0c1445',gnd:'#1e3a8a',gt:'#2563eb',sign:'최애가 여기서 버스 탔대!!'},
+  {x:4000,w:800,name:'📸 성지 포토존',     sky:'#1a1a00',gnd:'#713f12',gt:'#ca8a04',sign:'직캠 찍힌 바로 그 골목!!'},
+];
+
+const PLATS=[[200,45,80],[480,70,80],[900,50,80],[1180,75,80],
+  [1700,45,80],[1980,65,80],[2500,50,80],[2780,75,80],
+  [3300,45,80],[3580,70,80],[4100,50,80],[4380,75,80]];
+
+// ══ NPC ══
+const NPCS=[
+  {id:'친구',x:140,e:'🧑',n:'친구',c:'#4ade80',mu:false,
+   l:['← → 로 이동하고 ↑ 로 점프해!','NPC 근처에서 E 누르면 대화하거나 알바할 수 있어!','알바해서 티켓값 50,000원 모아봐!','아 그리고 겹카 여기 있어. 행운을 빌게 😄'],
+   r:{t:'stat',s:'def',v:5,desc:'친구의 응원!'},albaIntro:null},
+  {id:'티켓팅마스터',x:420,e:'⚡',n:'티켓팅마스터',c:'#a78bfa',mu:false,
+   l:['새벽 4시 기상 3년째야.','손가락 스트레칭이 일과야. 정신력 싸움이거든.','실패해도 포기 안 해. 언젠간 꼭 성공해.','국밥집 알바 구한다더라. 돈 모으기 딱이야!'],
+   r:{t:'stat',s:'atk',v:3,desc:'정신력 +3'},albaIntro:'gukbap'},
+  {id:'국밥사장',x:1000,e:'🍲',n:'국밥집 사장',c:'#4ade80',mu:true,sp:'guk',
+   l:['요즘 팬들이 많이 와.','알바 구하니? 잠깐 도와줄래?','국밥 한 그릇은 챙겨줄게.','열심히 해줘서 고마워요.'],
+   r:{t:'heal',v:50,desc:'사장님 국밥 HP +50'},albaIntro:'gukbap',albaType:'gukbap'},
+  {id:'학생팬',x:1200,e:'📚',n:'학생 팬',c:'#a78bfa',mu:false,
+   l:['나 알바하면서 덕질해.','시험 기간에 컴백이라니... 인생이란.','편의점 알바 추천해. 시급 괜찮아!','포토카드 내 최애 나왔음 ㅠㅠ 행복해.'],
+   r:{t:'stat',s:'def',v:5,desc:'멘탈력 +5'},albaIntro:'cvs'},
+  {id:'편의점사장',x:1800,e:'🏪',n:'편의점 사장',c:'#4ade80',mu:true,
+   l:['최애 광고요? 저기 붙어있어요.','알바 구하니? 잠깐 도와줄래?','삼각김밥 하나 드릴게요.','수고했어요!'],
+   r:{t:'heal',v:30,desc:'삼각김밥 HP +30'},albaIntro:'cvs',albaType:'cvs'},
+  {id:'생카주인',x:2600,e:'🎂',n:'생카 운영자',c:'#f9e04b',mu:false,
+   l:['팬들이 직접 차린 생일카페예요!','카페 알바 잠깐 도와줄 수 있어요?','커피 한 잔 드릴게요.','즐겁게 즐기다 가세요 💜'],
+   r:{t:'heal',v:40,desc:'생카 커피 HP +40'},albaIntro:'cafe',albaType:'cafe'},
+  {id:'직장인팬',x:2850,e:'💼',n:'직장인 팬',c:'#a78bfa',mu:false,
+   l:['연차 모아서 컴백날 쓰는 게 인생이지.','덕질이랑 현생 양립 가능해.','알바 열심히 해. 티켓값 꼭 모아!','나도 처음엔 그랬어.'],
+   r:{t:'mhp',v:20,desc:'최대 멘탈 +20'},albaIntro:null},
+  {id:'버스기사',x:3400,e:'🚌',n:'버스 기사',c:'#4ade80',mu:true,
+   l:['어떤 최애요? 이름이요?','저는 노선만 알아요.','뒷문으로 타세요.','다음 정거장: 성지 포토존입니다.'],
+   r:{t:'stat',s:'atk',v:3,desc:'이동력 UP'},albaIntro:null},
+  {id:'할머니',x:3600,e:'👵',n:'할머니',c:'#4ade80',mu:true,sp:'grma',
+   l:['그래서 밥은 먹었니?','알바하면서 콘서트 가려고? 기특하다.','할미도 젊을 때 누군가를 열심히 좋아했어.','그래도 밥은 먹었지. 밥이 먼저야.','다 먹었어? 됐어. 꼭 가봐라.'],
+   r:{t:'sp',desc:'할머니의 응원'},albaIntro:null},
+  {id:'할아버지',x:3780,e:'👴',n:'할아버지',c:'#4ade80',mu:true,
+   l:['나도 젊을 때 팬이었어.','레코드샵 가서 앨범 사던 시절이지.','지금도 가끔 들어. 행복하더라.','콘서트 꼭 가봐. 나중에 후회하지 말고.'],
+   r:{t:'heal',v:30,desc:'할아버지의 위로 HP +30'},albaIntro:null},
+  {id:'홈마법사',x:4200,e:'📸',n:'홈마법사',c:'#a78bfa',mu:false,
+   l:['직캠 찍다가 영화제 수상했어.','이 골목 조명이 진짜 예뻐.','최애도 여기서 찍혔잖아. 같은 빛 받는 거야.','콘서트 가면 나한테도 알려줘!'],
+   r:{t:'item',desc:'포토존 인증 📸'},albaIntro:null},
+  {id:'고양이',x:4450,e:'🐱',n:'성지 고양이',c:'#888',mu:true,
+   l:['...','야옹','...','(꾹꾹이)'],
+   r:{t:'heal',v:40,desc:'고양이 힐링 HP +40 🐱'},albaIntro:null},
+];
+
+// ══ 아이템/장애물 ══
+const ITEMS_DEF=[
+  {x:300,y:0,t:'doc'},{x:700,y:50,t:'doc'},{x:1100,y:0,t:'doc'},
+  {x:1500,y:60,t:'doc'},{x:2000,y:0,t:'doc'},{x:2400,y:50,t:'doc'},
+  {x:2900,y:0,t:'doc'},{x:3300,y:60,t:'doc'},{x:3800,y:0,t:'doc'},{x:4300,y:50,t:'doc'},
+  {x:500,y:40,t:'call'},{x:1300,y:0,t:'call'},{x:2100,y:50,t:'call'},
+  {x:2700,y:0,t:'call'},{x:3500,y:40,t:'call'},{x:4100,y:0,t:'call'},
+  {x:600,y:0,t:'email'},{x:1400,y:50,t:'email'},{x:2200,y:0,t:'email'},
+  {x:3000,y:50,t:'email'},{x:3700,y:0,t:'email'},{x:4400,y:50,t:'email'},
+  {x:850,y:0,t:'pencil'},{x:950,y:50,t:'pencil'},{x:1050,y:0,t:'pencil'},
+  {x:1150,y:50,t:'pencil'},{x:1250,y:0,t:'pencil'},
+  {x:350,y:0,t:'goods'},{x:1600,y:0,t:'goods'},{x:2500,y:0,t:'goods'},
+  {x:3400,y:0,t:'goods'},{x:4200,y:0,t:'goods'},
+  {x:750,y:40,t:'rain'},{x:1700,y:0,t:'rain'},{x:2600,y:40,t:'rain'},
+  {x:3600,y:0,t:'rain'},{x:4300,y:40,t:'rain'},
+  {x:200,y:100,t:'coffee'},{x:650,y:120,t:'coffee'},{x:1350,y:110,t:'coffee'},
+  {x:1950,y:100,t:'coffee'},{x:2550,y:110,t:'coffee'},{x:3150,y:100,t:'coffee'},
+  {x:3750,y:110,t:'coffee'},{x:4350,y:100,t:'coffee'},
+  {x:450,y:140,t:'energy'},{x:1450,y:140,t:'energy'},{x:2650,y:140,t:'energy'},{x:3850,y:140,t:'energy'},
+  {x:300,y:120,t:'choco'},{x:900,y:130,t:'choco'},{x:1700,y:120,t:'choco'},
+  {x:2300,y:130,t:'choco'},{x:3100,y:120,t:'choco'},{x:3900,y:130,t:'choco'},
+  {x:400,y:130,t:'pill'},{x:1100,y:110,t:'pill'},{x:1900,y:130,t:'pill'},
+  {x:2700,y:110,t:'pill'},{x:3500,y:130,t:'pill'},{x:4200,y:110,t:'pill'},
+  {x:550,y:150,t:'fanletter'},{x:1550,y:150,t:'fanletter'},{x:2550,y:150,t:'fanletter'},
+  {x:3550,y:150,t:'fanletter'},{x:4450,y:150,t:'fanletter'},
+  {x:250,y:62,t:'lunch'},{x:1050,y:67,t:'lunch'},{x:1850,y:62,t:'lunch'},
+  {x:2650,y:67,t:'lunch'},{x:3450,y:62,t:'lunch'},{x:4250,y:67,t:'lunch'},
+  {x:700,y:150,t:'photocard'},{x:1700,y:150,t:'photocard'},
+  {x:2700,y:150,t:'photocard'},{x:3700,y:150,t:'photocard'},
+];
+const ITEM_INFO={
+  doc:      {e:'📄',dmg:15,   desc:'서류 직격! 멘탈 -15'},
+  call:     {e:'📞',freeze:180,desc:'📞 긴급 회의 소집!! 3초 이동불가'},
+  email:    {e:'📧',dmg:20,   desc:'RE:RE:RE: 이메일 폭탄! 멘탈 -20'},
+  pencil:   {e:'✏️',dmg:25,   desc:'중간고사 D-1!! 멘탈 -25'},
+  goods:    {e:'💸',money:-3000,desc:'굿즈 팝업 광고! 정신 차려! -3,000원'},
+  rain:     {e:'🌧️',slow:150, desc:'갑자기 비! 우산도 없는데... 😭'},
+  coffee:   {e:'☕',speed:60, desc:'커피! 속도 UP ☕'},
+  energy:   {e:'🧃',speed:120,desc:'에너지 드링크! 속도 MAX 🧃'},
+  choco:    {e:'🍫',heal:15,  desc:'초콜릿! 멘탈 +15 🍫'},
+  pill:     {e:'💊',heal:25,  desc:'영양제! 멘탈 +25 💊'},
+  fanletter:{e:'💌',money:5000,desc:'팬레터! +5,000원 💌'},
+  lunch:    {e:'🍱',heal:999, desc:'도시락! 멘탈 풀 회복 🍱'},
+  photocard:{e:'🃏',heal:50,  desc:'포토카드! 멘탈 +50 (겹카도 행복해) 😭'},
+};
+
+// ══ 사운드 ══
+let AC,bgmInt=null,soundOn=true;
+function toggleSound(){
+  soundOn=!soundOn;
+  document.getElementById('SOUNDBTN').textContent=soundOn?'🔊':'🔇';
+  if(!soundOn)stopBGM();
+  else if(document.getElementById('GAME').style.display==='flex')startBGM();
+}
+function ac(){return AC||(AC=new(window.AudioContext||window.webkitAudioContext)());}
+function beep(f,d,w,v,t){if(!soundOn)return;try{const a=ac(),n=a.currentTime+(t||0),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.type=w||'square';o.frequency.value=f;g.gain.setValueAtTime(v||.12,n);g.gain.exponentialRampToValueAtTime(.001,n+d);o.start(n);o.stop(n+d+.01);}catch(e){}}
+function snd(t){
+  if(t=='step') beep(100+Math.random()*30,.06,'square',.03);
+  if(t=='jump') {beep(280,.06,'square',.1);beep(420,.08,'square',.08,.07);}
+  if(t=='land') beep(90,.07,'square',.07);
+  if(t=='hit')  {beep(160,.08,'square',.18);beep(110,.1,'square',.1,.09);}
+  if(t=='heal') [440,550,660].forEach((f,i)=>beep(f,.15,'sine',.12,i*.1));
+  if(t=='menu') beep(500,.07,'square',.08);
+  if(t=='fan')  [523,659,784,1046].forEach((f,i)=>beep(f,.22,'square',.12,i*.12));
+  if(t=='win')  [523,523,784,659,784,1046].forEach((f,i)=>beep(f,.2,'square',.13,i*.17));
+  if(t=='call') {beep(800,.08,'square',.15);beep(800,.08,'square',.15,.2);beep(800,.08,'square',.15,.4);}
+  if(t=='money'){beep(660,.08,'square',.1);beep(880,.1,'square',.1,.09);}
+  if(t=='concert'){[523,659,784,659,784,1046,784,659].forEach((f,i)=>beep(f,.2,'sine',.1,i*.2));}
+  if(t=='gameover'){[220,196,174,164].forEach((f,i)=>beep(f,.3,'square',.18,i*.25));}
+}
+const BGM=[523,523,659,523,784,740,523,523,659,523,880,784];
+let bgmIdx=0;
+function startBGM(){if(!soundOn)return;stopBGM();bgmInt=setInterval(()=>{if(!soundOn)return;beep(BGM[bgmIdx++%BGM.length],.18,'square',.05);},220);}
+function stopBGM(){clearInterval(bgmInt);bgmInt=null;}
+
+// ══ 상태 ══
+let G={},K={l:false,r:false},raf=null,stepT=0,toastT=null;
+function initG(){
+  G={x:80,y:0,vx:0,vy:0,onG:true,fR:true,
+    p:{hp:100,mhp:100,atk:20,def:10},
+    money:0,spots:[],vis:[],guk:0,grma:0,mug:0,
+    speedBoost:0,freeze:0,walkSlow:false,
+    collected:new Set(),albumDone:false,scenesDone:new Set(),
+    albaDone:new Set(),near:null,dlgNpc:null,dlgIdx:0,_dead:false,_ended:false};
+}
+
+// ══ 월드 빌드 ══
+function buildWorld(){
+  const W=document.getElementById('W');
+  W.innerHTML='';
+  ZONES.forEach(z=>{
+    const d=document.createElement('div');
+    d.style.cssText=`position:absolute;top:0;bottom:0;left:${z.x}px;width:${z.w}px;background:${z.sky};`;
+    for(let i=0;i<3;i++){
+      const cl=document.createElement('div');
+      cl.style.cssText=`position:absolute;top:${22+i*32}px;left:${40+i*90}px;width:${24+i*8}px;height:8px;background:rgba(255,255,255,.2);border-radius:2px;`;
+      d.appendChild(cl);
+    }
+    if(z.sign){
+      const sg=document.createElement('div');
+      sg.style.cssText=`position:absolute;left:${z.w/2-80}px;bottom:${GH}px;text-align:center;pointer-events:none;`;
+      sg.innerHTML=`<div style="background:#f9e04b;color:#000;border:3px solid #b45309;padding:4px 8px;font-size:9px;white-space:nowrap;line-height:1.6">★ ${z.sign}</div><div style="width:4px;height:20px;background:#b45309;margin:0 auto"></div>`;
+      d.appendChild(sg);
+    }
+    const gnd=document.createElement('div');
+    gnd.style.cssText=`position:absolute;bottom:0;left:0;right:0;height:${GH}px;background:${z.gnd};border-top:4px solid ${z.gt};`;
+    d.appendChild(gnd);
+    W.appendChild(d);
+  });
+  PLATS.forEach(([px,py,pw])=>{
+    const p=document.createElement('div');
+    p.style.cssText=`position:absolute;left:${px}px;bottom:${GH+py}px;width:${pw}px;height:14px;background:#92400e;border-top:4px solid #d97706;`;
+    W.appendChild(p);
+  });
+  // 레코드샵 표지판
+  const shop=document.createElement('div');
+  shop.style.cssText=`position:absolute;left:38px;bottom:${GH}px;text-align:center;z-index:5;pointer-events:none;`;
+  shop.innerHTML=`<div style="background:#f9e04b;color:#000;border:3px solid #b45309;padding:4px 8px;font-size:9px;white-space:nowrap;line-height:1.6">🎵 Record Shop</div><div style="width:4px;height:20px;background:#b45309;margin:0 auto"></div>`;
+  W.appendChild(shop);
+  ITEMS_DEF.forEach((item,i)=>{
+    const el=document.createElement('div');
+    el.id='OBJ-'+i;
+    el.style.cssText=`position:absolute;left:${item.x-13}px;bottom:${GH+item.y}px;font-size:26px;z-index:15;pointer-events:none;`;
+    el.textContent=ITEM_INFO[item.t].e;
+    W.appendChild(el);
+  });
+  NPCS.forEach(npc=>{
+    const el=document.createElement('div');
+    el.id='NPC-'+npc.id;
+    el.style.cssText=`position:absolute;left:${npc.x-15}px;bottom:${GH}px;text-align:center;z-index:10;cursor:pointer;`;
+    el.innerHTML=`<div id="BB-${npc.id}" style="position:absolute;bottom:115%;left:50%;transform:translateX(-50%);background:#f9e04b;color:#000;border:2px solid #b45309;padding:3px 8px;font-size:9px;white-space:nowrap;display:none">💬[E]</div><span id="FE-${npc.id}" style="font-size:28px;display:block">${npc.e}</span><div style="font-size:9px;background:#000;border:1px solid #444;padding:1px 4px;color:${npc.c};white-space:nowrap">${npc.n}</div>`;
+    W.appendChild(el);
+  });
+  const pl=document.createElement('div');
+  pl.id='PL';
+  pl.innerHTML='<div style="font-size:26px;line-height:1;text-align:center">👩</div><div style="font-size:20px;line-height:1;text-align:center;margin-top:-2px">🪄👗</div>';
+  pl.style.cssText=`position:absolute;z-index:20;bottom:${GH}px;left:${G.x-18}px;width:40px;`;
+  W.appendChild(pl);
+}
+
+// ══ 루프 ══
+function loop(ts){
+  raf=requestAnimationFrame(loop);
+  const VP=document.getElementById('VP'),vpW=VP.clientWidth;
+  if(G._dead||G._ended)return;
+
+  if(G.freeze>0)G.freeze--;
+  if(G.speedBoost>0)G.speedBoost--;
+  if(G.speedBoost<0)G.speedBoost++;
+
+  const frozen=G.freeze>0;
+  let spd=frozen?0:G.speedBoost>0?SPD*1.8:G.speedBoost<0?SPD*0.4:SPD;
+  if(G.walkSlow)spd*=0.6;
+  G.vx=K.l?-spd:K.r?spd:0;
+  if(K.l)G.fR=false;if(K.r)G.fR=true;
+  G.x=Math.max(30,Math.min(MW-30,G.x+G.vx));
+
+  G.vy-=GRAV;G.y+=G.vy;
+  const wasG=G.onG;G.onG=false;
+  if(G.y<=0){G.y=0;if(G.vy<-1&&!wasG)snd('land');G.vy=0;G.onG=true;G.jumpCount=0;}
+  PLATS.forEach(([pfx,pfy,pfw])=>{
+    const prevY=G.y-G.vy;
+    if(G.x>pfx-20&&G.x<pfx+pfw+20&&prevY>=pfy-2&&G.y<=pfy+6&&G.vy<=0){
+      G.y=pfy;if(G.vy<-0.5&&!wasG)snd('land');G.vy=0;G.onG=true;G.jumpCount=0;
+    }
+  });
+
+  // 앨범 이벤트
+  if(!G.albumDone&&G.x>200&&Math.abs(G.x-250)<50){G.albumDone=true;cancelAnimationFrame(raf);stopBGM();showAlbumEvent();return;}
+
+  // 장면전환
+  ZONES.forEach((z,i)=>{
+    if(i===0)return;
+    if(!G.scenesDone.has(i)&&G.x>=z.x&&G.x<z.x+60){
+      G.scenesDone.add(i);cancelAnimationFrame(raf);stopBGM();showScene(z,i);
+    }
+  });
+
+  // 플레이어
+  const pl=document.getElementById('PL');
+  if(pl){
+    pl.style.left=(G.x-18)+'px';
+    pl.style.bottom=(GH+G.y)+'px';
+    // 상태별 애니메이션
+    if(G.freeze>0){
+      pl.style.animation='none';
+      pl.style.transform=`translateX(${(Math.random()-.5)*6}px)`;
+    } else if(!G.onG){
+      pl.style.animation='plJump .4s ease-in-out infinite';
+      pl.style.transform=G.fR?'scaleX(1)':'scaleX(-1)';
+    } else if(G.vx>0){
+      pl.style.animation='plWalkR .3s steps(2) infinite';
+      pl.style.transform='scaleX(1)';
+    } else if(G.vx<0){
+      pl.style.animation='plWalkL .3s steps(2) infinite';
+      pl.style.transform='scaleX(-1)';
+    } else {
+      pl.style.animation='plBob 1.5s ease-in-out infinite';
+      pl.style.transform=G.fR?'scaleX(1)':'scaleX(-1)';
+    }
+  }
+
+  const camX=Math.max(0,Math.min(MW-vpW,G.x-vpW/2+20));
+  document.getElementById('W').style.transform=`translateX(${-camX}px)`;
+  const zone=ZONES.slice().reverse().find(z=>G.x>=z.x)||ZONES[0];
+  VP.style.background=zone.sky;
+  document.getElementById('ZNM').textContent=zone.name;
+
+  // NPC
+  let near=null;
+  NPCS.forEach(npc=>{
+    const bb=document.getElementById('BB-'+npc.id);
+    const isNear=Math.abs(npc.x-G.x)<NEAR;
+    if(isNear)near=npc;
+    if(bb)bb.style.display=isNear?'block':'none';
+  });
+  G.near=near;
+  const CT=document.getElementById('CT'),CTI=document.getElementById('CTI'),CTL=document.getElementById('CTL');
+  if(near){CT.classList.add('lit');CTI.textContent='💬';CTL.textContent='[E]탭';}
+  else{CT.classList.remove('lit');CTI.textContent='💬';CTL.textContent='탭';}
+
+  // 아이템 충돌
+  ITEMS_DEF.forEach((item,i)=>{
+    if(G.collected.has(i))return;
+    if(Math.abs(item.x-G.x)<28&&Math.abs((item.y+14)-(G.y+14))<32){
+      G.collected.add(i);
+      const el=document.getElementById('OBJ-'+i);if(el)el.style.display='none';
+      const info=ITEM_INFO[item.t];
+      if(['doc','call','email','pencil','goods','rain'].includes(item.t)){
+        if(info.dmg)G.p.hp=Math.max(0,G.p.hp-info.dmg);
+        if(info.freeze)G.freeze=info.freeze;
+        if(info.slow)G.speedBoost=-info.slow;
+        if(info.money)G.money=Math.max(0,G.money+info.money);
+        if(item.t==='call')snd('call');else snd('hit');
+        if(['doc','email','pencil'].includes(item.t))shakeScreen();
+        showPopup(info.e+' '+info.desc);
+      } else {
+        if(info.heal)G.p.hp=Math.min(G.p.mhp,G.p.hp+info.heal);
+        if(info.speed)G.speedBoost=info.speed;
+        if(info.money){G.money+=info.money;snd('money');}
+        else snd(info.heal?'heal':'fan');
+        showPopup(info.e+' '+info.desc);
+        if(item.t==='photocard')spawnParticles();
+      }
+    }
+  });
+
+  // 맵 끝 → 티켓 있으면 D-Day, 없으면 바로 엔딩
+  if(G.x>=MW-100&&!G._ended){
+    G._ended=true;cancelAnimationFrame(raf);stopBGM();
+    if(G._ticketBought) setTimeout(showDDay,600);
+    else setTimeout(()=>showEnding(),600);
+  }
+
+  // HP 0
+  if(G.p.hp<=0&&!G._dead){
+    G._dead=true;snd('gameover');stopBGM();cancelAnimationFrame(raf);
+    setTimeout(()=>{
+      document.getElementById('GO_INFO').textContent='💰 '+G.money.toLocaleString()+'원 모음  🍲 국밥 '+G.guk+'회';
+      document.getElementById('GAMEOVER').classList.add('on');
+    },800);
+  }
+
+  // 위험 오버레이
+  const danger=document.getElementById('DANGER');
+  if(danger){const r=G.p.hp/G.p.mhp;danger.style.background=r<0.3?`rgba(255,0,0,${(0.3-r)*0.8})`:'rgba(255,0,0,0)';}
+
+  // 티켓 목표 달성
+  if(G.money>=TICKET_GOAL&&!G._ticketBought){
+    G._ticketBought=true;
+    cancelAnimationFrame(raf);stopBGM();
+    showTicketEvent();
+    return;
+  }
+
+  // HUD
+  const pct=Math.max(0,Math.min(100,(G.p.hp/G.p.mhp)*100));
+  const hpf=document.getElementById('HPF');
+  if(hpf){hpf.style.width=pct+'%';hpf.style.background=G.p.hp>G.p.mhp*.4?'#4ade80':'#f87171';}
+  document.getElementById('HTXT').textContent=G.p.hp;
+  document.getElementById('HMONEY').textContent='💰'+G.money.toLocaleString()+'원';
+  document.getElementById('HGOAL').style.color=G.money>=TICKET_GOAL?'#4ade80':'#888';
+  document.getElementById('HMUG').textContent='💚'+G.mug+'/5';
+  document.getElementById('HSPOT').textContent='📍'+G.spots.length+'/4';
+  if(G.vx!==0&&G.onG&&ts-stepT>220){snd('step');stepT=ts;}
+}
+
+function doJump(){
+  if(G.onG||(G.jumpCount&&G.jumpCount<2)){
+    const jv=G.walkSlow?JV*0.7:G.jumpCount===1?JV*0.7:JV; // 더블점프는 약하게
+    G.vy=jv;G.onG=false;
+    G.jumpCount=(G.jumpCount||0)+1;
+    snd('jump');
+    if(G.jumpCount===2) showPopup('더블점프! ✨');
+  }
+}
+function interact(){const n=G.near;if(!n)return;snd('menu');openDlg(n);}
+
+// ══ 앨범 이벤트 ══
+function showAlbumEvent(){
+  showEvent('🎵','레코드샵 발견!',
+    `앨범 패키지 <span style="color:#f9e04b">29,000원</span><br>포토카드 랜덤 증정...<br><br>이번 달 덕질 예산 <span style="color:#f9e04b">30,000원</span><br><br>살까요?`,
+    [{label:'산다 (포카가 필요해)',action:'buy'},{label:'안 산다 (예산 아껴야 해)',action:'skip',green:true}]
+  );
+}
+function showEvent(icon,title,desc,btns){
+  document.getElementById('ev-icon').textContent=icon;
+  document.getElementById('ev-title').textContent=title;
+  document.getElementById('ev-desc').innerHTML=desc;
+  const bd=document.getElementById('ev-btns');bd.innerHTML='';
+  btns.forEach(b=>{
+    const el=document.createElement('button');
+    el.className='btn'+(b.green?' green':b.red?' red':'');
+    el.textContent=b.label;el.onclick=()=>handleEvent(b.action);
+    bd.appendChild(el);
+  });
+  document.getElementById('EVENT').classList.add('on');
+}
+function handleEvent(action){
+  document.getElementById('EVENT').classList.remove('on');
+  if(action==='buy'){
+    G.money=Math.max(0,G.money-29000);G.walkSlow=true;
+    showToast('📀 앨범 구매! 포토카드... 겹카입니다 😭',3000);
+    setTimeout(()=>showEvent('🃏','포토카드 결과',
+      `뽑았습니다...<br><br><span style="font-size:28px">🃏</span><br><br><span style="color:#f87171">겹카입니다 😭</span><br><br>이번 달 덕질 예산 <span style="color:#f9e04b">1,000원 남음</span><br><span style="color:#888;font-size:11px">교통비는... 걸어가면 되지 뭐</span>`,
+      [{label:'그래도 행복해 (걸어간다)',action:'walk'}]
+    ),1500);
+  } else if(action==='skip'){
+    showToast('💰 예산 지킴! 현명한 선택 😄',2000);
+    resumeGame();
+  } else if(action==='walk'){
+    snd('heal');spawnParticles();
+    showToast('💜 겹카도 행복해. 걸어간다.',2000);
+    resumeGame();
+  } else if(action==='ticket_yes'){
+    snd('fan');spawnParticles();spawnParticles();
+    showEvent('🎫','결제 완료!',
+      `<span style="font-size:28px">🎫</span><br><br><span style="color:#4ade80;font-size:16px">결제가 완료되었습니다</span><br><br>콘서트 티켓 1매<br><span style="color:#f9e04b">앞자리 당첨!</span><br><br>드디어... 간다. 💜`,
+      [{label:'D-Day까지 달린다!',action:'ticket_done'}]
+    );
+  } else if(action==='ticket_done'){
+    resumeGame();
+  }
+}
+function resumeGame(){raf=requestAnimationFrame(loop);startBGM();}
+
+// ══ 티켓 구매 이벤트 ══
+function showTicketEvent(){
+  snd('win');spawnParticles();
+  showEvent('🎫','목표 달성!!',
+    `💰 ${TICKET_GOAL.toLocaleString()}원 모음!<br><br>콘서트 티켓을 구매할 수 있어요!<br><br>티켓 가격: <span style="color:#f9e04b">50,000원</span>`,
+    [{label:'🎫 티켓 구매!',action:'ticket_yes'},{label:'계속 알바한다',action:'ticket_done',green:true}]
+  );
+}
+
+// ══ 장면전환 ══
+const SCENE_DATA=[null,
+  {icon:'🍲',title:'성지 국밥집',sub:'최애가 여기서 국밥 먹었대!!',spot:true},
+  {icon:'🏪',title:'성지 편의점',sub:'최애 광고 붙어있는 편의점!!',spot:true},
+  {icon:'🎂',title:'생일카페',sub:'팬들이 차린 생일카페 💜',spot:true},
+  {icon:'🚌',title:'성지 버스정류장',sub:'최애가 여기서 버스 탔대!!',spot:false},
+  {icon:'📸',title:'성지 포토존',sub:'직캠 찍힌 바로 그 골목!!',spot:true},
+];
+function showScene(zone,idx){
+  const data=SCENE_DATA[idx];if(!data){resumeGame();return;}
+  const sc=document.getElementById('SCENE');
+  if(!sc){resumeGame();return;}
+  sc.querySelector('#scene-icon')&&(sc.querySelector('#scene-icon').textContent=data.icon);
+  sc.style.display='flex';
+  const titleEl=sc.querySelector('#scene-title'),subEl=sc.querySelector('#scene-sub');
+  if(titleEl)titleEl.textContent=data.title;
+  if(subEl)subEl.textContent=data.sub;
+  snd('fan');if(data.spot)G.spots.push(idx);
+  setTimeout(()=>{sc.style.display='none';resumeGame();},2000);
+}
+
+// ══ 알바 미니게임 ══
+let mgState={},mgK={l:false,r:false},mgRaf=null;
+const CAFE_ITEMS=['아메리카노','라떼','초코','녹차','딸기'];
+const CVS_ITEMS=['삼각김밥','도시락','음료수','과자','컵라면'];
+
+function startMinigame(type,earnBase,npcId){
+  cancelAnimationFrame(raf);stopBGM();
+  document.getElementById('GAME').style.display='none';
+  const mg=document.getElementById('MINIGAME');
+  mg.classList.add('on');
+  mgState={type,earnBase,npcId,score:0,timeLeft:30,running:true};
+
+  document.getElementById('mg-earn').textContent='';
+  document.getElementById('mg-score').textContent='0원 벌었어요';
+  document.getElementById('mg-timer-fill').style.width='100%';
+  document.getElementById('mg-order').style.display='none';
+  document.getElementById('mg-btns').style.display='none';
+  document.getElementById('mg-field').style.display='none';
+  document.getElementById('mg-field-ctrl').style.display='none';
+
+  if(type==='cafe'||type==='cvs'){
+    document.getElementById('mg-title').textContent=type==='cafe'?'☕ 카페 알바':'📦 편의점 알바';
+    document.getElementById('mg-desc').textContent=type==='cafe'?'주문이 뜨면 맞는 음료를 눌러요!':'상품 이름이 뜨면 빠르게 눌러요!';
+    document.getElementById('mg-order').style.display='block';
+    document.getElementById('mg-btns').style.display='grid';
+    const items=type==='cafe'?CAFE_ITEMS:CVS_ITEMS;
+    const bd=document.getElementById('mg-btns');bd.innerHTML='';
+    items.forEach(item=>{
+      const b=document.createElement('button');b.className='mg-btn';b.textContent=item;
+      b.onclick=()=>mgPress(item,type);bd.appendChild(b);
+    });
+    mgNextOrder(type);
+  } else if(type==='gukbap'){
+    document.getElementById('mg-title').textContent='🍲 국밥집 알바';
+    document.getElementById('mg-desc').textContent='좌우로 이동해서 떨어지는 국밥을 받아요!';
+    document.getElementById('mg-field').style.display='block';
+    document.getElementById('mg-field-ctrl').style.display='flex';
+    mgState.catcherX=175;mgState.drops=[];mgState.dropTimer=0;
+    mgRaf=requestAnimationFrame(mgGukbapLoop);
+  }
+  mgTimerLoop();
+}
+
+let mgTimerInt=null;
+function mgTimerLoop(){
+  clearInterval(mgTimerInt);
+  mgTimerInt=setInterval(()=>{
+    if(!mgState.running){clearInterval(mgTimerInt);return;}
+    mgState.timeLeft--;
+    document.getElementById('mg-timer-fill').style.width=(mgState.timeLeft/30*100)+'%';
+    const fill=document.getElementById('mg-timer-fill');
+    fill.style.background=mgState.timeLeft>15?'#4ade80':mgState.timeLeft>8?'#f9e04b':'#f87171';
+    if(mgState.timeLeft<=0){mgState.running=false;clearInterval(mgTimerInt);endMinigame();}
+  },1000);
+}
+
+function mgNextOrder(type){
+  const items=type==='cafe'?CAFE_ITEMS:CVS_ITEMS;
+  mgState.current=items[~~(Math.random()*items.length)];
+  document.getElementById('mg-order').textContent=type==='cafe'?'주문: '+mgState.current:mgState.current;
+  document.querySelectorAll('.mg-btn').forEach(b=>{b.className='mg-btn';});
+}
+function mgPress(item,type){
+  if(!mgState.running)return;
+  const correct=item===mgState.current;
+  const btns=document.querySelectorAll('.mg-btn');
+  btns.forEach(b=>{if(b.textContent===item)b.className='mg-btn '+(correct?'correct':'wrong');});
+  if(correct){mgState.score+=mgState.earnBase;snd('money');document.getElementById('mg-score').textContent=mgState.score.toLocaleString()+'원 벌었어요';}
+  else snd('hit');
+  setTimeout(()=>mgNextOrder(type),400);
+}
+
+function mgGukbapLoop(ts){
+  if(!mgState.running){cancelAnimationFrame(mgRaf);return;}
+  mgRaf=requestAnimationFrame(mgGukbapLoop);
+  const field=document.getElementById('mg-field');
+  const fw=field.clientWidth;
+  // 캐쳐 이동
+  if(mgK.l)mgState.catcherX=Math.max(0,mgState.catcherX-4);
+  if(mgK.r)mgState.catcherX=Math.min(fw-50,mgState.catcherX+4);
+  const catcher=document.getElementById('mg-catcher');
+  if(catcher)catcher.style.left=mgState.catcherX+'px';
+  // 드롭 생성
+  mgState.dropTimer++;
+  if(mgState.dropTimer>40){mgState.dropTimer=0;
+    const drop={x:Math.random()*(fw-30),y:-10,el:document.createElement('div')};
+    drop.el.className='mg-drop';drop.el.textContent='🍲';
+    drop.el.style.cssText=`position:absolute;left:${drop.x}px;top:-20px;font-size:22px;`;
+    field.appendChild(drop.el);mgState.drops.push(drop);
+  }
+  // 드롭 이동 및 충돌
+  mgState.drops=mgState.drops.filter(drop=>{
+    drop.y+=3;drop.el.style.top=drop.y+'px';
+    const fh=field.clientHeight;
+    if(drop.y>fh-50&&drop.y<fh-20&&Math.abs(drop.x-mgState.catcherX)<50){
+      drop.el.remove();mgState.score+=mgState.earnBase;snd('money');
+      document.getElementById('mg-score').textContent=mgState.score.toLocaleString()+'원 벌었어요';
+      return false;
+    }
+    if(drop.y>fh){drop.el.remove();return false;}
+    return true;
+  });
+}
+
+function endMinigame(){
+  cancelAnimationFrame(mgRaf);
+  mgState.drops&&mgState.drops.forEach(d=>d.el&&d.el.remove());
+  const isFirst=G.albaDone.size===0;
+  const earned=isFirst?mgState.score*2:mgState.score; // 첫 알바 2배!
+  G.money+=earned;G.albaDone.add(mgState.npcId);
+  document.getElementById('mg-earn').textContent=
+    isFirst?`💰 ${earned.toLocaleString()}원 (첫 알바 2배 보너스!!)`:
+    `💰 ${earned.toLocaleString()}원 벌었어요!`;
+  snd('fan');spawnParticles();
+  setTimeout(()=>{
+    document.getElementById('MINIGAME').classList.remove('on');
+    document.getElementById('GAME').style.display='flex';
+    if(isFirst){
+      // 첫 알바 감정 문장
+      showEvent('💜','첫 알바 완료!',
+        `<span style="font-size:28px">💰</span><br><br>+${earned.toLocaleString()}원<br><span style="color:#888;font-size:12px">(첫 알바 2배 보너스!)</span><br><br><span style="color:#f9e04b;font-size:14px">"오늘도 덕질은 생존이었다."</span><br><br><span style="color:#4ade80">💰 현재: ${G.money.toLocaleString()}원 / 50,000원</span><br><span style="color:#f9e04b">🎫 목표: 콘서트 티켓 확보</span><br><span style="color:#a78bfa">🗺️ 다음: 성지순례를 계속 이어가자</span>`,
+        [{label:'계속 가자! 💪',action:'first_alba_done'}]
+      );
+    } else {
+      showToast('💰 알바 완료! +'+earned.toLocaleString()+'원',2500);
+      resumeGame();
+    }
+  },1800);
+}
+
+// ══ 대화 ══
+function openDlg(npc){
+  // 알바 가능한 NPC면 알바 먼저 제안
+  if(npc.albaType){
+    const earn=npc.albaType==='gukbap'?3000:npc.albaType==='cvs'?2500:2000;
+    const isRepeat=G.albaDone.has(npc.id);
+    cancelAnimationFrame(raf);stopBGM();
+    showEvent(npc.e, isRepeat?'또 왔어요! 환영해요 😄':'알바 제안!',
+      `${npc.n}에서 알바하실래요?<br><br>시급: <span style="color:#f9e04b">${earn.toLocaleString()}원</span><br>시간: <span style="color:#aaa">30초</span>${isRepeat?'<br><span style="color:#4ade80;font-size:11px">재고용 환영! 언제든지 오세요 😄</span>':''}`,
+      [{label:'한다! (돈 벌자)',action:'alba_'+npc.albaType+'_'+npc.id},{label:'괜찮아요 (대화만)',action:'talk_'+npc.id}]
+    );
+    return;
+  }
+  G.dlgNpc=npc;G.dlgIdx=0;renderDlg();document.getElementById('DLG').classList.add('on');
+}
+function handleEvent(action){
+  document.getElementById('EVENT').classList.remove('on');
+  if(action.startsWith('alba_')){
+    const parts=action.split('_');
+    const type=parts[1],npcId=parts.slice(2).join('_');
+    const earn=type==='gukbap'?500:type==='cvs'?400:350;
+    startMinigame(type,earn,npcId);
+  } else if(action.startsWith('talk_')){
+    const npcId=action.slice(5);
+    const npc=NPCS.find(n=>n.id===npcId);
+    if(npc){G.dlgNpc=npc;G.dlgIdx=0;renderDlg();document.getElementById('DLG').classList.add('on');}
+    resumeGame();
+  } else if(action==='buy'){
+    G.money=Math.max(0,G.money-29000);G.walkSlow=true;
+    showToast('📀 앨범 구매! 포토카드... 겹카입니다 😭',3000);
+    setTimeout(()=>showEvent('🃏','포토카드 결과',
+      `뽑았습니다...<br><br><span style="font-size:28px">🃏</span><br><br><span style="color:#f87171">겹카입니다 😭</span><br><br>이번 달 덕질 예산 <span style="color:#f9e04b">1,000원 남음</span><br><span style="color:#888;font-size:11px">교통비는... 걸어가면 되지 뭐</span>`,
+      [{label:'그래도 행복해 (걸어간다)',action:'walk'}]
+    ),1500);
+  } else if(action==='skip'){
+    showToast('💰 예산 지킴! 현명한 선택 😄',2000);resumeGame();
+  } else if(action==='walk'){
+    snd('heal');spawnParticles();showToast('💜 겹카도 행복해. 걸어간다.',2000);resumeGame();
+  } else if(action==='ticket_yes'){
+    snd('fan');spawnParticles();spawnParticles();
+    showEvent('🎫','결제 완료!',
+      `<span style="font-size:28px">🎫</span><br><br><span style="color:#4ade80;font-size:16px">결제가 완료되었습니다</span><br><br>콘서트 티켓 1매<br><span style="color:#f9e04b">앞자리 당첨!</span><br><br>드디어... 간다. 💜`,
+      [{label:'D-Day까지 달린다!',action:'ticket_done'}]
+    );
+  } else if(action==='first_alba_done'){
+    snd('fan');spawnParticles();
+    resumeGame();
+  } else if(action==='ticket_done'){resumeGame();}
+}
+
+function renderDlg(){
+  const n=G.dlgNpc;
+  document.getElementById('DF').textContent=n.e;
+  document.getElementById('DN').textContent=n.n;
+  const t=document.getElementById('DTP');t.style.color=n.c;
+  t.textContent=n.mu?'💚 머글':'💜 팬';
+  document.getElementById('DP').textContent=(G.dlgIdx+1)+'/'+n.l.length;
+  document.getElementById('DT').textContent=n.l[G.dlgIdx];
+  document.getElementById('DBTN').textContent=G.dlgIdx<n.l.length-1?'다음 ▶':'확인 ✓';
+}
+function dlgNext(){
+  snd('menu');const n=G.dlgNpc;
+  if(n.mu)G.mug=Math.min(G.mug+1,5);
+  if(n.sp==='guk')G.guk++;
+  if(n.sp==='grma')G.grma=(G.grma||0)+1;
+  if(G.dlgIdx<n.l.length-1){G.dlgIdx++;renderDlg();return;}
+  document.getElementById('DLG').classList.remove('on');
+  applyRew(n.r);
+  if(!G.vis.includes(n.id))G.vis.push(n.id);
+  // 친구 대화 끝나면 국밥집 방향 유도
+  if(n.id==='친구'&&!G._guideDone){
+    G._guideDone=true;
+    setTimeout(()=>{
+      showToast('🍲 국밥집 사장님한테 가서 알바해보자! →',3000);
+      // 국밥집 NPC 글로우
+      const el=document.getElementById('NPC-국밥사장');
+      if(el){el.style.animation='glow 1s ease-in-out infinite';
+        setTimeout(()=>el.style.animation='',6000);}
+    },500);
+  }
+  G.dlgNpc=null;
+}
+function applyRew(r){
+  if(!r)return;const p=G.p;
+  if(r.t==='heal'){p.hp=Math.min(p.mhp,p.hp+r.v);snd('heal');showToast('💚 '+r.desc);}
+  else if(r.t==='item'){snd('fan');showToast('🎁 '+r.desc);spawnParticles();}
+  else if(r.t==='stat'){p[r.s]=(p[r.s]||0)+r.v;snd('fan');showToast('⬆️ '+r.desc);}
+  else if(r.t==='mhp'){p.mhp+=r.v;p.hp=Math.min(p.hp+r.v,p.mhp);snd('fan');showToast('⬆️ '+r.desc);}
+  else if(r.t==='sp'){snd('fan');showToast('✨ '+r.desc,2800);}
+}
+
+// ══ D-Day 인트로 ══
+function showDDay(){
+  document.getElementById('GAME').style.display='none';
+  document.getElementById('DDAY').classList.add('on');
+  const lines=['dd1','dd2','dd3','dd4'];
+  lines.forEach((id,i)=>setTimeout(()=>document.getElementById(id).classList.add('show'),i*800+300));
+  setTimeout(()=>{document.getElementById('DDAY').classList.remove('on');showConcert();},4500);
+}
+
+// ══ 공연장 ══
+function showConcert(){
+  document.getElementById('CONCERT').classList.add('on');
+  snd('concert');
+  // 조명 애니메이션
+  const canvas=document.getElementById('light-canvas');
+  const ctx=canvas.getContext('2d');
+  let angle=0;
+  const lightLoop=()=>{
+    canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const colors=['#7c3aed','#f9e04b','#4ade80','#f87171','#60a5fa'];
+    for(let i=0;i<5;i++){
+      const a=angle+i*(Math.PI*2/5);
+      const grd=ctx.createLinearGradient(canvas.width/2,0,
+        canvas.width/2+Math.cos(a)*canvas.width,canvas.height);
+      grd.addColorStop(0,colors[i]+'88');grd.addColorStop(1,'transparent');
+      ctx.fillStyle=grd;
+      ctx.beginPath();ctx.moveTo(canvas.width/2,canvas.height);
+      ctx.lineTo(canvas.width/2+Math.cos(a-0.2)*canvas.width*2,0);
+      ctx.lineTo(canvas.width/2+Math.cos(a+0.2)*canvas.width*2,0);
+      ctx.fill();
+    }
+    angle+=0.01;requestAnimationFrame(lightLoop);
+  };lightLoop();
+
+  // 콘서트 메시지 타이핑
+  const msgs=['드디어 왔다.','같은 공간에 있다.','응원봉이 물결친다.','오늘 하루 잘 살았다. 💜'];
+  const msgEl=document.getElementById('concert-msg');
+  msgs.forEach((m,i)=>setTimeout(()=>{
+    msgEl.innerHTML+=m+'<br>';
+    if(i===msgs.length-1)document.getElementById('btn-end').style.display='block';
+  },i*1500+1000));
+  document.getElementById('btn-end').style.display='none';
+}
+
+// ══ 엔딩 ══
+function showEnding(){
+  document.getElementById('CONCERT').classList.remove('on');
+  document.getElementById('GAME').style.display='none';
+
+  const ticket=G._ticketBought;
+  const money=G.money;
+  const guk=G.guk||0;
+  const grma=G.grma||0;
+  const mug=G.mug||0;
+  const albaCount=G.albaDone?G.albaDone.size:0;
+  const spots=G.spots.length;
+
+  let grade,title,mainHtml;
+
+  // 😾 초히든: 하악
+  if(G.vis.includes('고양이')&&!ticket&&money<10000){
+    grade='😾 초히든';title='하악';
+    mainHtml=`<h2>하악</h2><p>콘서트장 뒷골목<br>수상한 고양이 발견<br><br><span style="font-size:28px">😾</span><br><br>플레이어: "어?"<br><span style="color:#f87171">😾💢 "하악."</span><br>플레이어: "죄송합니다."<br><span style="color:#f87171">😾💢📄 "하악."</span><br><br><span style="color:#888;font-size:11px">당신은 구르르엔터 감사팀장의<br>공식 입장문을 청취했습니다.</span><br><br>🏆 업적 『공식 입장 수신 완료』</p>`;
+    snd('hit');
+  }
+  // ✨ 오늘도 잘 살았다
+  else if(ticket&&guk>=5&&grma>=3&&mug>=3){
+    grade='✨ 오늘도 잘 살았다';title='오늘도 잘 살았다';
+    mainHtml=`<h2>오늘도 잘 살았다 💜</h2><p>콘서트 끝.<br><br>박성지 → 친구에게 전화<br>"나 방금 콘서트 다녀왔어"<br>친구: "겹카 줬는데 잘 됐네 ㅋㅋ"<br>박성지: "고마워. 국밥 살게."<br>친구: "ㅋㅋㅋㅋ 가자"<br><br><span style="color:#f9e04b">"덕질도 좋지만 밥도 먹자."</span><br><span style="color:#a78bfa">"그게 다 연결되어 있었다." 💜</span></p>`;
+    snd('win');spawnParticles();spawnParticles();spawnParticles();
+  }
+  // 🏆 S: 성공한 덕후
+  else if(ticket&&spots>=3){
+    grade='🏆 S';title='성공한 덕후';
+    mainHtml=`<h2>성공한 덕후 🏆</h2><p>콘서트 관람 성공<br>응원봉 ON<br>떼창 성공<br>집에 와서 영상 73번 다시 봄<br><br><span style="color:#f9e04b">"올해도 살아남길 잘했다."</span></p>`;
+    snd('win');spawnParticles();spawnParticles();
+  }
+  // 🎫 A: 지정석의 기적
+  else if(ticket&&spots>=2){
+    grade='🎫 A';title='지정석의 기적';
+    mainHtml=`<h2>지정석의 기적 🎫</h2><p>시야방해 없음<br>최애 얼굴 보임<br>행복도 MAX<br><br><span style="color:#f9e04b">"생각보다 더 잘생겼다."</span></p>`;
+    snd('fan');spawnParticles();
+  }
+  // 📸 B: 전광판 사랑
+  else if(ticket){
+    grade='📸 B';title='전광판 사랑';
+    mainHtml=`<h2>전광판 사랑 📸</h2><p>최애: 🤏<br>전광판: 📺😎✨<br>플레이어: 📺❤️<br><br><span style="color:#f9e04b">"실물보다 전광판을 더 많이 봤다."</span></p>`;
+    snd('fan');
+  }
+  // 🛍️ C: 굿즈는 남는다
+  else if(!ticket&&money>=30000){
+    grade='🛍️ C';title='굿즈는 남는다';
+    mainHtml=`<h2>굿즈는 남는다 🛍️</h2><p>티켓 포기<br>굿즈 구매<br>아크릴 4개 / 포카 12장 / 인형 1개<br>잔액: 💸 0원<br><br><span style="color:#f9e04b">"후회는 없다."</span><br><span style="color:#aaa;font-size:11px">진짜 후회 없음</span></p>`;
+    snd('menu');
+  }
+  // ☕ D: 알바의 제왕
+  else if(!ticket&&albaCount>=3){
+    grade='☕ D';title='알바의 제왕';
+    mainHtml=`<h2>알바의 제왕 ☕</h2><p>알바 횟수: ${albaCount}회<br>근태: A+<br>사장님 MVP<br>콘서트: 못 감<br>ㅋㅋㅋㅋㅋ<br><br><span style="color:#f9e04b">"다음 투어를 노리자."</span></p>`;
+    snd('menu');
+  }
+  // 📺 E: 안방 1열
+  else if(!ticket&&money>=5000){
+    grade='📺 E';title='안방 1열';
+    mainHtml=`<h2>안방 1열 📺</h2><p>티켓은 못 샀지만<br>괜찮아<br><br>집에서 담요 덮고<br>라이브 켬<br>시청자 247,832명<br>그 중 한 명이 나<br><br><span style="color:#f9e04b">"안방 1열도 1열이야."</span></p>`;
+    snd('heal');
+  }
+  // 📦 F: 연결이 원활하지 않습니다
+  else{
+    grade='📦 F';title='연결이 원활하지 않습니다';
+    mainHtml=`<h2>연결이 원활하지 않습니다 📦</h2><p>새로고침<br>새로고침<br>새로고침<br>새로고침<br><br>❌ 서버 오류<br>❌ 대기번호 120,000명<br>❌ 매진<br><br><span style="color:#f9e04b">"다음 투어를 노리자."</span><br><span style="color:#888;font-size:11px">인트로부터 여기까지 왔다. 수고했어. 💜</span></p>`;
+    snd('hit');
+  }
+
+  document.getElementById('END_TTL').textContent=grade+' — '+title;
+  document.getElementById('END_MAIN').innerHTML=mainHtml;
+  document.getElementById('END_STATS').innerHTML=`
+    <div>💰 모은 돈 ${money.toLocaleString()}원</div>
+    <div>📍 성지 ${spots}곳</div>
+    <div>🍲 국밥 ${guk}회</div>
+    <div>💚 머글친구 ${mug}명</div>
+    <div>☕ 알바 ${albaCount}회</div>
+    <div>🎫 티켓 ${ticket?'구매 ✅':'미달성'}</div>`;
+  document.getElementById('ENDING').classList.add('on');
+}
+
+// ══ 게임오버 / 재시작 ══
+function restartGame(){
+  document.getElementById('GAMEOVER').classList.remove('on');
+  document.getElementById('TUTORIAL').classList.remove('on');
+  document.getElementById('GAME').style.display='flex';
+  initG();buildWorld();cancelAnimationFrame(raf);
+  setTimeout(()=>showAlbumEvent(),300);
+}
+function goTitle(){
+  document.getElementById('ENDING').classList.remove('on');
+  document.getElementById('TICKETING').classList.add('on');
+  runTicketing();
+}
+
+// ══ 유틸 ══
+function showToast(m,ms=2200){
+  const e=document.getElementById('TS');e.textContent=m;e.style.display='block';
+  clearTimeout(toastT);toastT=setTimeout(()=>e.style.display='none',ms);
+}
+function showPopup(msg){
+  const el=document.getElementById('POPUP');if(!el)return;
+  el.textContent=msg;el.style.display='block';el.style.animation='none';
+  void el.offsetWidth;el.style.animation='popUp .9s ease forwards';
+  setTimeout(()=>el.style.display='none',900);
+}
+function shakeScreen(){
+  const g=document.getElementById('GAME');if(!g)return;
+  g.style.animation='shake .4s ease';setTimeout(()=>g.style.animation='',450);
+}
+function spawnParticles(){
+  const cont=document.getElementById('PARTICLES');if(!cont)return;
+  const emojis=['🌟','⭐','✨','🎉','💜','🃏','🎫','💌','🪄'];
+  for(let i=0;i<10;i++){
+    const el=document.createElement('div');
+    el.textContent=emojis[~~(Math.random()*emojis.length)];
+    el.style.cssText=`position:absolute;left:${Math.random()*100}%;top:${Math.random()*60+10}%;font-size:${18+~~(Math.random()*16)}px;animation:particle ${.6+Math.random()*.6}s ease forwards;pointer-events:none;`;
+    cont.appendChild(el);setTimeout(()=>el.remove(),1200);
+  }
+}
+
+// ══ 티켓팅 실패 인트로 ══
+function runTicketing(){
+  document.getElementById('tick-msg').textContent='';
+  document.getElementById('tick-sub').textContent='';
+  document.getElementById('tick-count').textContent='🎫';
+  // 카운트다운 연출
+  const steps=[
+    ()=>{document.getElementById('tick-count').textContent='3';snd('hit');},
+    ()=>{document.getElementById('tick-count').textContent='2';snd('hit');},
+    ()=>{document.getElementById('tick-count').textContent='1';snd('hit');},
+    ()=>{document.getElementById('tick-count').textContent='0';snd('hit');},
+    ()=>{
+      document.getElementById('tick-count').textContent='😭';
+      document.getElementById('tick-msg').textContent='연결이 원활하지 않습니다';
+      document.getElementById('tick-sub').textContent='티켓팅 또 실패...';
+      snd('gameover');
+    },
+    ()=>{
+      document.getElementById('TICKETING').classList.remove('on');
+      showIntro();
+    }
+  ];
+  steps.forEach((fn,i)=>setTimeout(fn,i*800+300));
+}
+
+// ══ 인트로 ══
+function showIntro(){
+  document.getElementById('INTRO').classList.add('on');
+  const lines=['il1','il2','il3','il4','il5','il6'];
+  lines.forEach(id=>document.getElementById(id).classList.remove('show'));
+  document.getElementById('btn-start').style.display='none';
+  lines.forEach((id,i)=>setTimeout(()=>{
+    document.getElementById(id).classList.add('show');
+    if(i===lines.length-1)setTimeout(()=>document.getElementById('btn-start').style.display='block',600);
+  },i*700+300));
+}
+
+function closeTutorial(){
+  document.getElementById('TUTORIAL').classList.remove('on');
+  document.getElementById('GAME').style.display='flex';
+  initG();buildWorld();cancelAnimationFrame(raf);
+  setTimeout(()=>showAlbumEvent(),300);
+}
+
+function startGame(){
+  document.getElementById('INTRO').classList.remove('on');
+  document.getElementById('TUTORIAL').classList.add('on');
+}
+
+// ══ 키보드 ══
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'){K.l=true;mgK.l=true;}
+  if(e.key==='ArrowRight'||e.key==='d'){K.r=true;mgK.r=true;}
+  if((e.key==='ArrowUp'||e.key===' ')){e.preventDefault();doJump();}
+  if((e.key==='e'||e.key==='E')&&document.getElementById('GAME').style.display==='flex')interact();
+  if((e.key==='Enter'||e.key===' ')&&document.getElementById('DLG').classList.contains('on')){e.preventDefault();dlgNext();}
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft'||e.key==='a'){K.l=false;mgK.l=false;}
+  if(e.key==='ArrowRight'||e.key==='d'){K.r=false;mgK.r=false;}
+});
+
+// ══ 시작 ══
+// SCENE 엘리먼트 동적 생성
+const sceneDiv=document.createElement('div');
+sceneDiv.id='SCENE';sceneDiv.style.cssText='position:fixed;inset:0;background:#0d0d1a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:20px;z-index:450;';
+sceneDiv.innerHTML=`<div id="scene-icon" style="font-size:clamp(48px,14vw,72px)">🍲</div><div style="font-size:clamp(11px,3vw,15px);color:#f9e04b;letter-spacing:2px">★ 공식 성지 인증 ★</div><div id="scene-title" style="font-size:clamp(18px,5.5vw,28px);color:#fff;font-weight:bold">성지 국밥집</div><div id="scene-sub" style="font-size:clamp(12px,3.5vw,18px);color:#a78bfa">최애가 여기서 국밥 먹었대!!</div>`;
+document.body.appendChild(sceneDiv);
+
+runTicketing();
+</script>
+</body>
+</html>
